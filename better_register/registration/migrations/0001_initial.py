@@ -13,8 +13,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AssociatedSection',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('crn', models.IntegerField(unique=True, null=True)),
+                ('days', models.CharField(max_length=7)),
+                ('crn', models.IntegerField(unique=True, serialize=False, primary_key=True)),
             ],
             options={
                 'abstract': False,
@@ -33,33 +33,11 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='Date',
+            name='Evaluation',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('day', models.CharField(max_length=1)),
-                ('start', models.IntegerField()),
-                ('end', models.IntegerField()),
-            ],
-            options={
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
-            name='Eval',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course', models.ForeignKey(to='registration.Course')),
-            ],
-            options={
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
-            name='GenEd',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('code', models.CharField(max_length=5)),
-                ('desc', models.TextField()),
+                ('score', models.IntegerField()),
+                ('course', models.ForeignKey(related_name='evals', to='registration.Course')),
             ],
             options={
             },
@@ -69,10 +47,8 @@ class Migration(migrations.Migration):
             name='Instructor',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('first_name', models.CharField(max_length=256)),
-                ('middle', models.CharField(max_length=256)),
-                ('last_name', models.CharField(max_length=256)),
-                ('email', models.EmailField(max_length=75, null=True)),
+                ('fname', models.CharField(max_length=256)),
+                ('lname', models.CharField(max_length=256)),
             ],
             options={
             },
@@ -90,23 +66,14 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='Notes',
-            fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-            ],
-            options={
-            },
-            bases=(models.Model,),
-        ),
-        migrations.CreateModel(
             name='Offering',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('crn', models.IntegerField(unique=True, null=True)),
+                ('days', models.CharField(max_length=7)),
+                ('crn', models.IntegerField(unique=True, serialize=False, primary_key=True)),
                 ('credits', models.IntegerField(null=True)),
                 ('course', models.ForeignKey(to='registration.Course')),
-                ('instructors', models.ManyToManyField(to='registration.Instructor')),
-                ('meetings', models.ManyToManyField(to='registration.Date')),
+                ('instructor', models.ForeignKey(related_name='offerings', to='registration.Instructor')),
+                ('location', models.ForeignKey(to='registration.Location')),
             ],
             options={
                 'abstract': False,
@@ -124,9 +91,9 @@ class Migration(migrations.Migration):
             bases=(models.Model,),
         ),
         migrations.AddField(
-            model_name='eval',
+            model_name='evaluation',
             name='instructor',
-            field=models.ForeignKey(to='registration.Instructor'),
+            field=models.ForeignKey(related_name='evals', to='registration.Instructor'),
             preserve_default=True,
         ),
         migrations.AddField(
@@ -137,14 +104,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='associatedsection',
-            name='instructors',
-            field=models.ManyToManyField(to='registration.Instructor'),
+            name='instructor',
+            field=models.ForeignKey(related_name='associated_sections', to='registration.Instructor'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='associatedsection',
-            name='meetings',
-            field=models.ManyToManyField(to='registration.Date'),
+            name='location',
+            field=models.ForeignKey(to='registration.Location'),
             preserve_default=True,
         ),
         migrations.AddField(

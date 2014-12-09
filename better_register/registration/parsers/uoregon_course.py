@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import string
 import re
 
-
 def remove_nbsp(text):
     """
     removes the non breaking space characters from a string

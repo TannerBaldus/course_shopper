@@ -10,6 +10,8 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+
+PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
@@ -26,7 +28,9 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+TEMPLATE_DIRS = (
+    os.path.join(BASE_DIR,  'templates'),
+)
 # Application definition
 
 INSTALLED_APPS = (
@@ -49,9 +53,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
+
 ROOT_URLCONF = 'better_register.urls'
 
 WSGI_APPLICATION = 'better_register.wsgi.application'
+
 
 
 # Database
@@ -59,8 +65,12 @@ WSGI_APPLICATION = 'better_register.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'classes',
+        'USER': 'guest',
+        'PASSWORD': 'guest',
+        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
+        'PORT': '68233',
     }
 }
 

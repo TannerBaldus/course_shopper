@@ -1,21 +1,101 @@
 from django.shortcuts import render
-import requests
-from bs4 import  BeautifulSoup
-import parsers.uoregon_results as uor
+from django.core import serializers
+import models as m
 # Create your views here.
 
-def class_search(term, subject):
-    search_url = 'http://classes.uoregon.edu/pls/prod/hwskdhnt.P_ListCrse?term_in={term}&' \
-                 'sel_subj=dummy&sel_day=dummy&sel_schd=dummy&sel_insm=dummy&sel_camp=dummy&sel_levl=dummy' \
-                 '&sel_sess=dummy&sel_instr=dummy&sel_ptrm=dummy&sel_attr=dummy&sel_cred=dummy&sel_tuition=dummy&sel_' \
-                 'open=dumm&sel_weekend=dummy&sel_title=&sel_to_cred=&sel_from_cred=&sel_subj={subject}&sel_crse=&sel_crn=&' \
-                 'sel_camp=%25&sel_levl=%25&sel_attr=%25&begin_hh=0&begin_mi=0&begin_ap=a&end_hh=0&end_mi=0&end_ap=a' \
-                 '&submit_btn=Show+Classes'
-    detail_url = ''
-    parse_result_fn = lambda x: uor.parse_course_result()
-    results_soup = BeautifulSoup(requests.get(search_url).text)
-    for i in parse_results(results_soup):
-          print i
+
+def index(request):
+    return render(request, 'search.html')
 
 
-class_search('201401','CIS')
+def get_qury_dict(request):
+    if request.method == 'GET':
+        return request.GET
+    elif request.method == 'POST':
+        return request.POST
+
+
+def serialize(obj):
+    return obj.__unicode__()
+
+
+def serailize_query(query):
+    return map(serialize, query)
+
+
+def short_render(request, query):
+    """
+    Since we're returning the same template this weiil cut down on retyping everything.
+    :param query:
+    :return:
+    """
+    return render(request, 'results.html', {'results': serailize_query(query)})
+
+
+def instructor_by_subject(request):
+    qd = get_qury_dict(request)
+    subject_code = qd['sub_code'].upper()
+    offerings = m.Offering.objects.filter(course__subject__code=subject_code)
+    instructors = list(set(map(lambda o: "{} {}".format(o.instructor.fname, o.instructor.lname), offerings)))
+    return render(request, 'results.html', {'results': instructors})
+
+
+def instructor_by_score(request):
+    qd = get_qury_dict(request)
+    rating = float(qd['score'])
+    eval_fn = m.Evaluation.objects.avg_ratings
+    instructors = m.Instructor.objects.search_by_evaluation(rating, eval_fn)
+    return short_render(request, instructors)
+
+
+def instructor_by_name(request):
+    qd = get_qury_dict(request)
+    fname = qd['fname']
+    lname = qd['lname']
+    instructors = m.Instructor.objects.filter(fname=fname, lname=lname)
+    return short_render(request, instructors)
+
+
+def offering_by_score(request):
+    qd = get_qury_dict(request)
+    score = float(qd['score'])
+    eval_fn = m.Evaluation.objects.avg_ratings
+    offerings = m.Offering.objects.search_by_evaluation(score, eval_fn)
+    return short_render(request, offerings)
+
+
+def offering_by_subject(request):
+    qd = get_qury_dict(request)
+    subject_code = qd['sub_code']
+    offerings = m.Offering.objects.filter(course__subject__code=subject_code)
+    return short_render(request, offerings)
+
+
+def offering_by_instructor(request):
+    qd = get_qury_dict(request)
+    fname = qd['fname']
+    lname = qd['lname']
+    offerings = m.Offering.objects.filter(instructor__fname=fname, instructor__lname=lname)
+    return short_render(request, offerings)
+
+
+def eval_by_score(request):
+    qd = get_qury_dict(request)
+    score = qd['score']
+    evals = m.Evaluation.objects.by_score(score)
+    return short_render(request, evals)
+
+def evals_by_instructor(request):
+    qd = get_qury_dict(request)
+    fname = qd['fname']
+    lname = qd['lname']
+    offerings = m.Evaluation.objects.filter(instructor__fname=fname, instructor__lname=lname)
+    return short_render(request, offerings)
+
+
+
+
+
+
+
+
