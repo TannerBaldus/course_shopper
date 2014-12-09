@@ -66,11 +66,10 @@ WSGI_APPLICATION = 'better_register.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'classes',
-        'USER': 'guest',
+        'NAME': 'TannerBaldus$classes',
+        'USER': 'TannerBaldus',
         'PASSWORD': 'guest',
-        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
-        'PORT': '68233',
+        'HOST': 'mysql.server',   # Or an IP Address that your DB is hosted on
     }
 }
 

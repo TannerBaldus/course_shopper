@@ -1,10 +1,8 @@
 from django.shortcuts import render
-from django.core import serializers
 import models as m
-# Create your views here.
 
 
-def index(request):
+def home(request):
     return render(request, 'search.html')
 
 
