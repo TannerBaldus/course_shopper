@@ -43,7 +43,7 @@ def instructor_by_subject(request):
 def instructor_by_score(request):
     qd = get_qury_dict(request)
     rating = float(qd['score'])
-    eval_fn = m.Evaluation.objects.avg_ratings
+    eval_fn = m.Evaluation.objects.avg_ins_ratings
     instructors = m.Instructor.objects.search_by_evaluation(rating, eval_fn)
     return short_render(request, instructors)
 
@@ -52,6 +52,7 @@ def instructor_by_name(request):
     qd = get_qury_dict(request)
     fname = qd['fname']
     lname = qd['lname']
+
     instructors = m.Instructor.objects.filter(fname=fname, lname=lname)
     return short_render(request, instructors)
 
@@ -59,7 +60,7 @@ def instructor_by_name(request):
 def offering_by_score(request):
     qd = get_qury_dict(request)
     score = float(qd['score'])
-    eval_fn = m.Evaluation.objects.avg_ratings
+    eval_fn = m.Evaluation.objects.avg_offering_ratings
     offerings = m.Offering.objects.search_by_evaluation(score, eval_fn)
     return short_render(request, offerings)
 

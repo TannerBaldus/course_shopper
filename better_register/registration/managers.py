@@ -34,8 +34,11 @@ class EvaluationManager(models.Manager):
     def get_queryset(self):
         return super(EvaluationManager, self).get_queryset().select_related('instructor', 'course')
 
-    def avg_ratings(self):
+    def avg_offering_ratings(self):
         return self.values('instructor', 'course').annotate(avg_score=Avg('score'))
+
+    def avg_ins_ratings(self):
+        return self.values('instructor').annotate(avg_score=Avg('score'))
 
     def by_instructor(self, fname, lname):
         return self.filter(instructor_fname=fname, instructor_lname=lname)
