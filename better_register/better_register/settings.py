@@ -70,7 +70,7 @@ DATABASES = {
         'USER': 'guest',
         'PASSWORD': 'guest',
         'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
-        'PORT': '68233',
+        'PORT': '3306',
     }
 }
 

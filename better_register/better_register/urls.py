@@ -6,7 +6,7 @@ urlpatterns = patterns('',
     # url(r'^$', 'better_register.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
 
-    url(r'^/','registration.views.index'),
+    url(r'^$','registration.views.index'),
     url(r'^ibsb', 'registration.views.instructor_by_subject'),
     url(r'^ibsc', 'registration.views.instructor_by_score'),
     url(r'^ibn', 'registration.views.instructor_by_name'),
