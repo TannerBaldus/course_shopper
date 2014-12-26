@@ -38,9 +38,63 @@ def parse_time(time_str):
     return dict(start=start, end=end)
 
 
-def parse_meetings(days_str,time_str):
+def parse_days(day_str):
     """
-    Since classes can have diffrent meetings on diffrent days we parse the time into day, time pairs.
+    Sometimes offerings have one off meetings denoted by the form: m 10/1.
+    A offering can also be a short class denoted by the form: m 10/1-10/20.
+    If the days are not written in either of these forms it's a normal class that starts and ends on the term. Hence
+    all of the values of the apporipate keys will a blank string.
+
+    :param day_str: a string of the days of a meeting. the text in the cell next to the time.
+    :return: (dict of start and end date,dict of weekdays with calendar day)
+    """
+    day_lst = day_str.split(' ')
+    weekdays = day_lst[0]
+    calendar_day = None
+    if len(day_lst) > 1 and '-' not in day_lst[1]:
+        calendar_day = day_lst[1]
+
+    return [dict(weekday=c, calendar_day=calendar_day) for c in weekdays]
+
+
+def parse_start_end(day_str):
+
+    start, end = [None]*2
+    if '-' in day_str:
+        start, end = day_str.split(' ')[1].split('-')
+    return dict(start_date = start, end_date=end)
+
+
+
+def parse_location(location_str):
+    """
+    Takes a string of location and splits it up into Room/Number. Sometimes there's no room so will just put None into
+    the room key in the return dict.
+    :param location_str:
+    :return:
+    """
+    location_lst = location_str.split(' ')
+
+    if len(location_lst) == 1:
+        return dict(building=location_str, room=None)
+
+    elif len(location_lst) == 2:
+        pattern = re.compile('\d')
+        is_room = lambda i: i if bool(pattern.search(location_lst[i])) else False  # Room Number order isn't consistent
+        room_index = is_room[0] or 1
+        return dict(building=location_lst[room_index-1],room=location_lst[room_index])
+
+
+
+
+
+
+
+
+
+def parse_meetings(days_str, time_str, location):
+    """
+    Since classes can have different meetings on different days we parse the time into day, time pairs.
 
     parse_meetings('mf',1600-1650)
     >{'m':{start:1600,end:1650}, 'f':{start:1600,end:1650}}
@@ -49,26 +103,9 @@ def parse_meetings(days_str,time_str):
     :return:a dict of days mapped to start and end times
     """
     times = parse_time(time_str)
-    meetings = {c:times for c in days_str}
-    return meetings
+    days = parse_days(days_str)
 
-def has_multiple_times(table_row):
-    """
-    Checks a vitals table row to see if the class meets at a different time on diffrent days.
-    e.g. 1600-1600 on mondays and 1500-1550 and fridays.
-    :param table_row:
-    :return: boolean
-    """
-    sibling = table_row.next_sibling
-    pattern = r'(\d{4}-\d{4})'
-    return re.match(pattern, sibling.text)
-
-def parse_extra_time(table_row):
-
-    if has_multiple_times(table_row):
-
-
-
+    return [day.update(time=times, location=parse_location(location)) for day in days]
 
 
 def parse_vitals(table_row):
@@ -91,11 +128,16 @@ def parse_vitals(table_row):
     rows = [to_int(remove_nbsp(tag.text)) for tag in [child for child in table_row.children if child != u'\n']]
     labels = ['class_type', 'crn', 'avail', 'max', 'time', 'day', 'location', 'instructor', 'notes']
     label_mapping = dict(zip(labels, rows))
-    label_mapping['meetings'] = parse_meetings(label_mapping['day'], label_mapping['time'])
+    start, end = parse_start_end(label_mapping['day'])
+    label_mapping.update(meetings=parse_meetings(label_mapping['day'], label_mapping['time'], label_mapping['location'])
+    ,start_date=start, end_date=end)
 
 
+    map(label_mapping.pop, ['day', 'time', 'location'])
 
     return label_mapping
+
+
 
 def get_vitals(soup):
     """
@@ -105,6 +147,27 @@ def get_vitals(soup):
     """
     vitals_tag = soup.find('td', class_='dddead', text='Location').parent.find_next_siblings('tr')[0]
     vitals_dict = parse_vitals(vitals_tag)
+    return vitals_dict
+
+
+def get_multiple_meetings(soup):
+    """
+    Sometimes a offering has meetings with diffrent times depending on the day. This is denoted by a table row of the
+    form:
+    <tr>
+        <td rowspan="1" nowrap="" class="dddefault" width="75">0900-1650</td>
+        <td rowspan="1" class="dddefault" width="90">u 1/11</td>
+        <td rowspan="1" nowrap="" class="dddefault" width="75">241 KNI</td>
+    </tr>
+    :param soup: a beautifulsoup object
+    :return: a list of meeting dictonaries.
+    """
+
+    is_meeting_tag = lambda tag: True if tag and tag.td and re.match(r'(\d{4}-\d{4})', tag.td.text) else False
+    multiple_meeting_tags = soup.find_all(is_meeting_tag)
+    get_args = lambda tr: [td.text for td in tr.find_all('td')]
+    return [parse_meetings(get_args(tr)) for tr in multiple_meeting_tags]
+
 
 
 def get_term(soup):
@@ -114,14 +177,14 @@ def get_term(soup):
     returns the term and the year
     """
     term_tag = soup.find('h2')
-    term, year = term_tag.text.split(' ')
-    return term, int(year)
+    season, year = term_tag.text.split(' ')
+    return dict(season=season, year=int(year))
 
 
 def parse_course_code(text):
     """
     Finds the class codes of the form: CIS 210 in a sentence
-    :param text: string to find class code in or list of strings
+    :param text: string to find class
     :return: list of tuples of class code and number
 
     parse_class_code('CIS 313 with Andrezj builds character.')
@@ -130,8 +193,9 @@ def parse_course_code(text):
     > [('HIST',101), ('CIS',451)]
     """
     text = text.strip(string.punctuation).split(' ')
-    codes = [(text[i], int(text[i + 1])) for i in range(len(text)) if i + 1 < len(text) and
-               text[i].isupper() and text[i + 1].isdigit()]
+    make_course = lambda i: dict(code=text[i], number=int(text[i+1]))
+    codes = [make_course(i) for i in range(len(text)) if i + 1 < len(text) and text[i].isupper()
+             and text[i + 1].isdigit()]
     return codes
 
 
@@ -187,6 +251,7 @@ def get_instructors(soup):
     """
     We use this instead of the vitals because the course evals
     need the full name. And the vitals only give us the lastname  first initial
+
     :param soup:
     :return:
     """
@@ -194,9 +259,9 @@ def get_instructors(soup):
     instructors = []
     for element in instructor_elements:
         anchor_tag = element.find_next_sibling('td').a
-        name = anchor_tag['target']
+        fname, middle, lname = anchor_tag['target'].split(' ')
         email = anchor_tag['href'].replace('mailto:', '')
-        instructors.append(dict(name=name, email=email))
+        instructors.append(dict(fname=fname, middle=middle, lname=lname, email=email))
 
     return instructors
 
@@ -217,7 +282,7 @@ def get_gen_eds(title_text):
 
 def get_title_credit_text(soup):
     """
-    The tags cointaing the credits and the title string are in the same TR so we get both strings here.
+    The tags containg the credits and the title string are in the same TR so we get both strings here.
     :rtype : list
     :param soup: beautifulsoup obj
     :return: [title_tag, credit_]
@@ -244,7 +309,7 @@ def parse_title(title_text):
     :return: the course code
     """
 
-    subject, number = parse_course_code(title_text)[0]
+    subject, number = parse_course_code(title_text)[0].values()
     end_of_number = title_text.find(str(number))+3
     gen_ed_start = title_text.find('>')  # If there's a > in the title its a gen ed
     gen_eds = get_gen_eds(title_text)
@@ -279,18 +344,13 @@ def parse_primary_course(soup):
 
     title_text, credit_text = get_title_credit_text(soup)
     subject, number, gen_eds, title = parse_title(title_text)
-    term, year = get_term(soup)
+    meetings = primary_dict.get('meetings') + get_multiple_meetings(soup)
 
-    primary_dict['term'] = term
-    primary_dict['title'] = title
-    primary_dict['year'] = year
-    primary_dict['subject'] = subject
-    primary_dict['number'] = number
-    primary_dict['credits'] = get_credits(credit_text)
-    primary_dict['gen_eds'] = gen_eds
-    primary_dict['prereqs'] = get_prereqs(soup)
-    primary_dict['instructors'] = get_instructors(soup)
-    primary_dict['notes'] = get_notes(soup)
+    primary_dict.update(
+        dict(term=get_term(soup), title=title, subject=subject, credits=get_credits(soup), gen_eds=gen_eds,
+        prereqs=get_prereqs(soup), instructors=get_instructors(soup), notes=get_notes(soup), fee=get_course_fee(soup),
+        meetings=meetings)
+    )
     return primary_dict
 
 

@@ -26,7 +26,7 @@ class UO_Parse_Test(unittest.TestCase):
 
     def test_multiple_instructor(self):
         correct_result = [{"email": "shannonh@uoregon.edu",
-                          "name": "Shannon A. Hayes"},
+                           "name": "Shannon A. Hayes"},
                           {'name': "Judith R. Baskin",
                            'email': "jbaskin@uoregon.edu"},
                           {'name': 'Bonnie J. Mann', 'email': 'bmann@uoregon.edu'}]
@@ -34,37 +34,29 @@ class UO_Parse_Test(unittest.TestCase):
         self.assertEqual(sorted(correct_result), sorted(result))
 
     def test_parse_vitals(self):
-        correct_result = {
-            'class_type': 'Lecture',
-            'crn': 21497,
-            'avail': 124,
-            'max': 125,
-            'start': 1100,
-            'end': 1150,
-            'day': 'mwf',
-            'location': '240C MCK',
-            'instructor': 'Young M',
-            'notes': ''
-        }
+        correct_result = dict(class_type='Lecture', crn=21497, avail=124, max=125, meetings=
+        [dict(day='m', start=1100, end=1150, location='129 MCK'),
+         dict(day='w', start=1100, end=1150, location='129 MCK'),
+         dict(day='f', start=1100, end=1150, location='129 MCK')], notes='')
+
         result = uo.parse_vitals(self.vitals_soup)
-        self.assertEqual(correct_result,result)
+        self.assertEqual(correct_result, result)
 
     def test_parse_time(self):
-        parse_dict = {'time': '1000-1150'}
+        parse_str = '1000-1150'
         correct_result = {
             'start': 1000,
             'end': 1150
         }
-        uo.parse_time(parse_dict)
-        self.assertEqual(correct_result, parse_dict)
+        result = uo.parse_time(parse_str)
+        self.assertEqual(correct_result, result)
 
 
     def test_parse_course_code(self):
         test_text = 'Prereq: programming experience and MATH 112.'
         result = uo.parse_course_code(test_text)
-        correct_result = [('MATH', 112)]
+        correct_result = [dict(code='MATH', number=112)]
         self.assertEqual(correct_result, result)
-
 
 
     def test_remove_nbsp(self):
@@ -75,7 +67,7 @@ class UO_Parse_Test(unittest.TestCase):
 
     def test_get_term(self):
         result = uo.get_term(self.course_soup)
-        correct_result = (u'Fall', 2014)
+        correct_result = dict(season=u'Fall', year=2014)
         self.assertEqual(correct_result, result)
 
     def test_get_title_credit_text(self):
@@ -100,7 +92,7 @@ class UO_Parse_Test(unittest.TestCase):
         self.assertEqual(0.0, result)
 
     def test_get_prereq(self):
-        correct_result = [(u'MATH', 112)]
+        correct_result = [dict(code=u'MATH', number=112)]
         result = uo.get_prereqs(self.course_soup)
         self.assertEqual(correct_result, result)
 

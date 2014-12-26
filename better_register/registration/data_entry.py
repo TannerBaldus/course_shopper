@@ -15,7 +15,7 @@ def create_course(subject_code, num, title):
     Course.objects.create(number=num, title=title, subject=subject)
 
 def get_instructor(name):
-    fname, lname = name.split(' ')
+    fname, middle, lname = name.split(' ')
     return Instructor.objects.get(fname=fname, lname=lname)
 
 def create_instructor(name):
