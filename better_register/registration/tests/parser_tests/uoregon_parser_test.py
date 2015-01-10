@@ -11,12 +11,15 @@ class UO_Parse_Test(unittest.TestCase):
         cls.course_soup = BeautifulSoup(open('test_data/uoregon_class.html'))
         cls.vitals_soup = BeautifulSoup(open('test_data/vitals.html')).find('tr')
         cls.diff_days = BeautifulSoup(open('test_data/diff_days.html'))
+
         """
         PEO, or outdoor pursuits classes are awesome classes and edge case prone. They all have course fees,
         preqs structured like: PEO 285 and 315, and important web_related resources and notes. And this particular
         offering has multiple instructors.
         """
         cls.peo_class = BeautifulSoup(open('test_data/peo.html'))
+        cls.note_tag = BeautifulSoup('<div class="notes"><b>A</b> - Mandatory Attendance</div>')
+        cls.note_img_tag = BeautifulSoup(open('test_data/note.html'))
 
         diff_day_location = dict(room='241', building='KNI')
         cls.diff_days_meetings = [
@@ -159,6 +162,18 @@ class UO_Parse_Test(unittest.TestCase):
         result = uo.get_web_resources(self.peo_class)
         self.assertItemsEqual(correct_result,result)
 
+    def test_parse_notes(self):
+        correct_result = dict(code='A',desc='Mandatory Attendance')
+        result = uo.parse_note(self.note_tag)
+        self.assertEqual(correct_result,result)
+
+    def test_parse_notes_img(self):
+        correct_result = dict(
+            code = 'Approval Required',
+            desc = ("Dept or Instructor approval required; check course details for effective dates.",
+                    "When approved, use the Add/Drop menu to add the course by entering the CRN directly")
+        )
+        result = uo.parse_note(self.note_img_tag)
 
 
 

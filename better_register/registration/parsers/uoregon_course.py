@@ -233,20 +233,28 @@ def parse_associated_sections(soup):
     return [parse_vitals(sib) for sib in associated_section_header.find_next_siblings('tr')]
 
 
+
+
+def parse_note(note_tag):
+    """
+    Parses the description and note code from a note tag.
+    Sometimes the note code is actually an image, we get a string representation by getting the title of the image.
+    :param note_tag:
+    :return:
+    """
+    note_text = note_tag.text.split('-')
+    if not note_text[0]:  # Note code is a image
+        note_text[0] = note_tag.img['title']
+    return dict(code=note_text[0].strip(), desc=note_text[1].strip())
+
 def get_notes(soup):
     """
-
+    Luckily a lot of the notes for a class have the class 'notes'. So we find those divs and parse them here.
     :param soup:
     :return:
     """
     note_divs = soup.find_all('div', class_='notes')
-    notes = []
-    for note_div in note_divs:
-        note_text = note_div.text.split('-')
-        if not note_text[0]:  # Note code is a image
-            note_text[0] = note_div.img['alt']  # The alt text is the title of the note
-        notes += tuple(note_text)
-    return notes
+    return map(parse_note, note_divs)
 
 
 def parse_instructor(instructor_tag):
