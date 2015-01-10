@@ -125,3 +125,7 @@ class Evaluation(models.Model):
 class WebResource(models.Model):
     link_text = models.TextField()
     link_url = models.TextField()
+
+class Note(models.Model):
+    code =  models.TextField()
+    desc = models.TextField()
