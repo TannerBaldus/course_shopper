@@ -55,7 +55,6 @@ class Subject(models.Model):
     subject = models.CharField(max_length=256)
 
 
-
     def __unicode__(self):
         return "{}:{}".format(self.code, self.subject)
 
@@ -84,7 +83,7 @@ class BaseOfferingInfo(models.Model):
 
 
 class Term(models.Model):
-    season = models.CharField(7)
+    season = models.CharField(max_length=7)
     year = models.IntegerField()
 
     class meta:
@@ -120,5 +119,9 @@ class Evaluation(models.Model):
 
     def __unicode__(self):
         return "{} {} taught by {} {} score: {}".format(self.course.subject.code, self.course.number,
-                                                                 self.instructor.fname, self.instructor.lname, self.score)
+                                                        self.instructor.fname, self.instructor.lname, self.score)
 
+
+class WebResource(models.Model):
+    link_text = models.TextField()
+    link_url = models.TextField()

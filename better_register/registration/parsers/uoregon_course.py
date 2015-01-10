@@ -1,8 +1,8 @@
 __author__ = 'tanner'
 
-from bs4 import BeautifulSoup
 import string
 import re
+
 
 def remove_nbsp(text):
     """
@@ -41,12 +41,10 @@ def parse_time(time_str):
 def parse_days(day_str):
     """
     Sometimes offerings have one off meetings denoted by the form: m 10/1.
-    A offering can also be a short class denoted by the form: m 10/1-10/20.
-    If the days are not written in either of these forms it's a normal class that starts and ends on the term. Hence
-    all of the values of the apporipate keys will a blank string.
+    If it isn't of this form it's a normal meeting and the calendar day will be None.
 
     :param day_str: a string of the days of a meeting. the text in the cell next to the time.
-    :return: (dict of start and end date,dict of weekdays with calendar day)
+    :return: list of dicts of the form {weekday, }
     """
     day_lst = day_str.split(' ')
     weekdays = day_lst[0]
@@ -58,18 +56,25 @@ def parse_days(day_str):
 
 
 def parse_start_end(day_str):
-
-    start, end = [None]*2
+    """
+    Sometimes the course offering is a is a short class that doesn't go the full term.
+    This is put in the day string of the form: mwf 10/1-10/15
+    If there isn't a
+    :param day_str: a string of the days of a meeting. the text in the cell next to the time.
+    :return: a dict of the form {start_date,end_date}
+    """
+    start, end = [None] * 2
     if '-' in day_str:
         start, end = day_str.split(' ')[1].split('-')
-    return dict(start_date = start, end_date=end)
-
+    return dict(start_date=start, end_date=end)
 
 
 def parse_location(location_str):
     """
     Takes a string of location and splits it up into Room/Number. Sometimes there's no room so will just put None into
-    the room key in the return dict.
+    the room key in the return dict. We don't convert room number to .int because sometimes it's a combo of letters and
+    numbers e.g. MCK 240C
+
     :param location_str:
     :return:
     """
@@ -81,15 +86,8 @@ def parse_location(location_str):
     elif len(location_lst) == 2:
         pattern = re.compile('\d')
         is_room = lambda i: i if bool(pattern.search(location_lst[i])) else False  # Room Number order isn't consistent
-        room_index = is_room[0] or 1
-        return dict(building=location_lst[room_index-1],room=location_lst[room_index])
-
-
-
-
-
-
-
+        room_index = is_room(1) or 0
+        return dict(building=location_lst[room_index - 1], room=location_lst[room_index])
 
 
 def parse_meetings(days_str, time_str, location):
@@ -104,8 +102,8 @@ def parse_meetings(days_str, time_str, location):
     """
     times = parse_time(time_str)
     days = parse_days(days_str)
-
-    return [day.update(time=times, location=parse_location(location)) for day in days]
+    [day.update(times, location=parse_location(location)) for day in days]
+    return days
 
 
 def parse_vitals(table_row):
@@ -128,15 +126,11 @@ def parse_vitals(table_row):
     rows = [to_int(remove_nbsp(tag.text)) for tag in [child for child in table_row.children if child != u'\n']]
     labels = ['class_type', 'crn', 'avail', 'max', 'time', 'day', 'location', 'instructor', 'notes']
     label_mapping = dict(zip(labels, rows))
-    start, end = parse_start_end(label_mapping['day'])
-    label_mapping.update(meetings=parse_meetings(label_mapping['day'], label_mapping['time'], label_mapping['location'])
-    ,start_date=start, end_date=end)
-
-
-    map(label_mapping.pop, ['day', 'time', 'location'])
-
+    start_end = parse_start_end(label_mapping['day'])
+    label_mapping.update(start_end, meetings=parse_meetings(label_mapping['day'], label_mapping['time'],
+                                                            label_mapping['location']))
+    map(label_mapping.pop, ['day', 'time', 'location', 'instructor', 'notes'])
     return label_mapping
-
 
 
 def get_vitals(soup):
@@ -166,8 +160,8 @@ def get_multiple_meetings(soup):
     is_meeting_tag = lambda tag: True if tag and tag.td and re.match(r'(\d{4}-\d{4})', tag.td.text) else False
     multiple_meeting_tags = soup.find_all(is_meeting_tag)
     get_args = lambda tr: [td.text for td in tr.find_all('td')]
-    return [parse_meetings(get_args(tr)) for tr in multiple_meeting_tags]
-
+    for tr in multiple_meeting_tags:
+        yield parse_meetings(get_args(tr))
 
 
 def get_term(soup):
@@ -193,10 +187,18 @@ def parse_course_code(text):
     > [('HIST',101), ('CIS',451)]
     """
     text = text.strip(string.punctuation).split(' ')
-    make_course = lambda i: dict(code=text[i], number=int(text[i+1]))
-    codes = [make_course(i) for i in range(len(text)) if i + 1 < len(text) and text[i].isupper()
-             and text[i + 1].isdigit()]
-    return codes
+    make_course = lambda subj, number: dict(code=subj, number=int(number))
+    current_subject = ''
+    courses = []
+    for i in text:
+        if i.isupper():
+            current_subject = i
+        elif i.isdigit():
+            courses.append(make_course(current_subject, i))
+        else:
+            continue
+
+    return courses
 
 
 def get_prereqs(soup):
@@ -241,10 +243,21 @@ def get_notes(soup):
     notes = []
     for note_div in note_divs:
         note_text = note_div.text.split('-')
-        if not note_text[0]: #Note code is a image
+        if not note_text[0]:  # Note code is a image
             note_text[0] = note_div.img['alt']  # The alt text is the title of the note
         notes += tuple(note_text)
     return notes
+
+
+def parse_instructor(instructor_tag):
+    """
+
+    :param instructor_str:
+    :return:
+    """
+    fname, middle, lname = instructor_tag['target'].replace('.', '').split(' ')
+    email = instructor_tag['href'].replace('mailto:', '')
+    return dict(fname=fname, middle=middle, lname=lname, email=email)
 
 
 def get_instructors(soup):
@@ -255,18 +268,11 @@ def get_instructors(soup):
     :param soup:
     :return:
     """
-    instructor_elements = soup.find_all('td', text='Instructor:')
-    instructors = []
-    for element in instructor_elements:
-        anchor_tag = element.find_next_sibling('td').a
-        fname, middle, lname = anchor_tag['target'].split(' ')
-        email = anchor_tag['href'].replace('mailto:', '')
-        instructors.append(dict(fname=fname, middle=middle, lname=lname, email=email))
-
-    return instructors
+    instructor_elements = [tag.find_next('td').a for tag in  soup.find_all('td', text='Instructor:')]
+    return map(parse_instructor, instructor_elements)
 
 
-def get_gen_eds(title_text):
+def parse_gen_eds(title_text):
     """
     The gen_ed codes of the form >4 are contained in the title text for some reason. So we extract those here.
     :param title_text: the title string
@@ -286,7 +292,6 @@ def get_title_credit_text(soup):
     :rtype : list
     :param soup: beautifulsoup obj
     :return: [title_tag, credit_]
-
     get_title_credit_text(course_soup)
     >['CIS 210 Computer Science I >4', '4.00 cr.']
     """
@@ -309,17 +314,17 @@ def parse_title(title_text):
     :return: the course code
     """
 
-    subject, number = parse_course_code(title_text)[0].values()
-    end_of_number = title_text.find(str(number))+3
+    subject, number =parse_course_code(title_text)[0].values()
+    end_of_number = title_text.find(str(number)) + 3
     gen_ed_start = title_text.find('>')  # If there's a > in the title its a gen ed
-    gen_eds = get_gen_eds(title_text)
+    gen_eds = parse_gen_eds(title_text)
 
     if gen_ed_start != -1:
         title = title_text[end_of_number:gen_ed_start]  # Title stops where gen ed begins
     else:
         title = title_text[end_of_number:]
 
-    return subject, number, gen_eds, title.strip()
+    return dict(subject=subject, number=number, title=title.strip()), gen_eds
 
 
 def get_course_fee(soup):
@@ -334,6 +339,34 @@ def get_course_fee(soup):
     return 0.0
 
 
+def get_web_resources(soup):
+    """
+    Some course offerings have important links about course policies. We parse them here into dicts of link_url
+    and link_text.
+    :param soup:
+    :return:
+    """
+    web_resource_img = soup.find('img', title='Additional Web Resources Available')
+    if web_resource_img:
+        resource_anchors = web_resource_img.find_next('td').find_all('a')
+        parse_anchor = lambda a: dict(link_text=a.text, link_url=a['href'])
+        return map(parse_anchor,resource_anchors) or None
+    return None
+
+
+def get_offering(soup):
+    """
+
+    :param soup:
+    :return:
+    """
+    is_offering_tag = lambda t: t.text == 'Associated Sections' if t else False
+    offering_tag = soup.find(is_offering_tag).parent
+    offering_vitals = offering_tag.find_next('tr')
+    return offering_vitals.get('crn')
+
+
+
 def parse_primary_course(soup):
     """
     :param soup:
@@ -341,15 +374,15 @@ def parse_primary_course(soup):
     """
 
     primary_dict = get_vitals(soup)
-
     title_text, credit_text = get_title_credit_text(soup)
-    subject, number, gen_eds, title = parse_title(title_text)
+    course, gen_eds = parse_title(title_text)
     meetings = primary_dict.get('meetings') + get_multiple_meetings(soup)
 
     primary_dict.update(
-        dict(term=get_term(soup), title=title, subject=subject, credits=get_credits(soup), gen_eds=gen_eds,
-        prereqs=get_prereqs(soup), instructors=get_instructors(soup), notes=get_notes(soup), fee=get_course_fee(soup),
-        meetings=meetings)
+        dict(course=course, credits=get_credits(soup), gen_eds=gen_eds,
+             prereqs=get_prereqs(soup), instructors=get_instructors(soup), notes=get_notes(soup),
+             fee=get_course_fee(soup),
+             meetings=meetings)
     )
     return primary_dict
 
@@ -360,13 +393,6 @@ def parse_associated_section(soup, offering):
     associated_section['offering'] = offering
     return associated_section
 
-
-def parse_results_page(soup):
-    """
-
-    :param soup:
-    :return:
-    """
 
 
 
