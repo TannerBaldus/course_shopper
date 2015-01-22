@@ -1,7 +1,8 @@
+from better_register.registration.parsers.uoregon import offering_page_parser as uo
+
 __author__ = 'tanner'
 import unittest
 from bs4 import BeautifulSoup
-from better_register.registration.parsers import uoregon_course as uo
 
 
 class UO_Parse_Test(unittest.TestCase):
@@ -174,6 +175,21 @@ class UO_Parse_Test(unittest.TestCase):
                     "When approved, use the Add/Drop menu to add the course by entering the CRN directly")
         )
         result = uo.parse_note(self.note_img_tag)
+
+    def test_get_notes(self):
+        correct_result = [
+            dict(code='b',desc='Course articles and information available on course website'),
+            dict(code='A',desc='Mandatory Attendance'),
+            dict(code='j',desc='Must be able to run 2 miles in 20 mins during in-class fitness test'),
+            dict(
+            code = 'Approval Required',
+            desc = "Dept or Instructor approval required; check course details for effective dates."+
+                    "  When approved, use the Add/Drop menu to add the course by entering the CRN directly"
+        )
+        ]
+
+        result = uo.get_notes(self.peo_class)
+        self.assertItemsEqual(correct_result,result)
 
 
 

@@ -115,11 +115,19 @@ class Evaluation(models.Model):
     instructor = models.ForeignKey(Instructor, related_name='evals')
     course = models.ForeignKey(Course, related_name='evals')
     score = models.IntegerField()
+    responses = models.IntegerField()
+    q1 = models.FloatField()
+    q2 = models.FloatField()
+    q3 = models.FloatField()
+    q4 = models.FloatField()
+    q5 = models.FloatField()
     objects = managers.EvaluationManager()
 
     def __unicode__(self):
         return "{} {} taught by {} {} score: {}".format(self.course.subject.code, self.course.number,
                                                         self.instructor.fname, self.instructor.lname, self.score)
+
+
 
 
 class WebResource(models.Model):

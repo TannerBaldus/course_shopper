@@ -123,7 +123,7 @@ def parse_vitals(table_row):
     :return: A dictionary with the above titles as keys and the
     text from the <TD> as the values
     """
-    rows = [to_int(remove_nbsp(tag.text)) for tag in [child for child in table_row.children if child != u'\n']]
+    rows = table_row.find_all('td')
     labels = ['class_type', 'crn', 'avail', 'max', 'time', 'day', 'location', 'instructor', 'notes']
     label_mapping = dict(zip(labels, rows))
     start_end = parse_start_end(label_mapping['day'])
@@ -233,8 +233,6 @@ def parse_associated_sections(soup):
     return [parse_vitals(sib) for sib in associated_section_header.find_next_siblings('tr')]
 
 
-
-
 def parse_note(note_tag):
     """
     Parses the description and note code from a note tag.
@@ -242,10 +240,14 @@ def parse_note(note_tag):
     :param note_tag:
     :return:
     """
-    note_text = note_tag.text.split('-')
-    if not note_text[0]:  # Note code is a image
-        note_text[0] = note_tag.img['title']
-    return dict(code=note_text[0].strip(), desc=note_text[1].strip())
+    note_text =  note_tag.text
+    note_delimiter = note_text.find('-')
+    note_code = note_text[0:note_delimiter].strip()
+    note_desc = note_text[note_delimiter+1:].strip()
+
+    if not note_code:  # Note code is a image
+        note_code = note_tag.img['title']
+    return dict(code=note_code, desc=note_desc)
 
 def get_notes(soup):
     """
