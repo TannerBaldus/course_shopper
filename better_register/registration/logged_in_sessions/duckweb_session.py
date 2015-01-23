@@ -28,11 +28,57 @@ class DuckwebSession(LoggedInSession):
 
 
     def go_to_course_evals(self):
+        """
+        Navigates to the course evaluations page. Opens up a new window and closes it
+        because this allows us to open go directly to the url of the evaluation search, thus saving without
+        :return:
+        """
         main_menu_link = self.find_element_by_css_selector('[title="Course Evaluations"]')
         main_menu_link.click()
-        primer_page_link = self.find_element_by_class_name('Course Evaluations')
+        primer_page_link = self.find_element_by_link_text('Course Evaluations')
         primer_page_link.click()
         self.close_opened_window()
         self.new_tab('https://www.applyweb.com/eval/new/coursesearch')
+
+
+    def instructor_option_values(self):
+        iframe = self.find_element_by_tag_name('iFrame')
+        self.switch_to_frame(iframe)
+
+        instructor_select = self.find_element_by_css_selector('[name="instructorSelect"]')
+        options = instructor_select.find_elements_by_tag_name('option')
+
+        for option in options:
+            yield option.get_attribute('value')
+
+
+    def get_instructor_option(self, value):
+        selector = "[value='{}']".format(value)
+        return self.find_element_by_css_selector(selector)
+
+
+
+    def get_evals_results(self):
+        """
+
+        :return:
+        """
+
+        for value in self.instructor_option_values():
+
+            if int(value) > 0:
+                instructor_option = self.get_instructor_option(value)
+                evals = self.find_element_by_tag_name('tbody')
+                yield instructor_option.text, evals.get_attribute('innerHTML')
+
+
+    def evals(self):
+        self.go_to_course_evals()
+        return self.get_evals_results()
+
+
+
+
+
 
 
