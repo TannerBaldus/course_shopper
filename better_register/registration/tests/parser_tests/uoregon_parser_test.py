@@ -161,37 +161,43 @@ class UO_Parse_Test(unittest.TestCase):
                  link_url='http://opp.uoregon.edu/professional/procourses.html')
         ]
         result = uo.get_web_resources(self.peo_class)
-        self.assertItemsEqual(correct_result,result)
+        self.assertItemsEqual(correct_result, result)
 
     def test_parse_notes(self):
-        correct_result = dict(code='A',desc='Mandatory Attendance')
+        correct_result = dict(code='A', desc='Mandatory Attendance')
         result = uo.parse_note(self.note_tag)
-        self.assertEqual(correct_result,result)
+        self.assertEqual(correct_result, result)
 
     def test_parse_notes_img(self):
         correct_result = dict(
-            code = 'Approval Required',
-            desc = ("Dept or Instructor approval required; check course details for effective dates.",
-                    "When approved, use the Add/Drop menu to add the course by entering the CRN directly")
+            code='Approval Required',
+            desc=("Dept or Instructor approval required; check course details for effective dates.",
+                  "When approved, use the Add/Drop menu to add the course by entering the CRN directly")
         )
         result = uo.parse_note(self.note_img_tag)
 
     def test_get_notes(self):
         correct_result = [
-            dict(code='b',desc='Course articles and information available on course website'),
-            dict(code='A',desc='Mandatory Attendance'),
-            dict(code='j',desc='Must be able to run 2 miles in 20 mins during in-class fitness test'),
+            dict(code='b', desc='Course articles and information available on course website'),
+            dict(code='A', desc='Mandatory Attendance'),
+            dict(code='j', desc='Must be able to run 2 miles in 20 mins during in-class fitness test'),
             dict(
-            code = 'Approval Required',
-            desc = "Dept or Instructor approval required; check course details for effective dates."+
-                    "  When approved, use the Add/Drop menu to add the course by entering the CRN directly"
-        )
+                code='Approval Required',
+                desc="Dept or Instructor approval required; check course details for effective dates." +
+                     "  When approved, use the Add/Drop menu to add the course by entering the CRN directly"
+            )
         ]
 
         result = uo.get_notes(self.peo_class)
-        self.assertItemsEqual(correct_result,result)
+        self.assertItemsEqual(correct_result, result)
 
+    def test_get_course_description(self):
+        correct_result = ('Basic concepts and practices of computer science. Topics include algorithmic problem solving'
+                          ', levels of abstraction, object-oriented design and programming, software organization, '
+                          'analysis of algorithm and data structures. Sequence.')
 
+        result = uo.get_course_description(self.course_soup)
+        self.assertEqual(correct_result, result)
 
 
 

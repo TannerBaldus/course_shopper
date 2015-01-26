@@ -1,10 +1,8 @@
-from better_register.registration.parsers.uoregon import offering_page_parser
-
+from offering_page_parser import parse_primary_course, parse_associated_section
+from better_register.registration.models import Subject
 __author__ = 'tanner'
 import requests
 from bs4 import BeautifulSoup
-
-
 
 
 
@@ -23,8 +21,8 @@ def get_details(result, detail_url):
     course_type, crn = result
     course_page = BeautifulSoup(requests.get(detail_url.format(crn)).text)
     if course_type == 'course':
-        return dict(course=offering_page_parser.parse_primary_course(course_page))
-    return dict(associated_section=offering_page_parser.parse_associated_section(course_page))
+        return dict(course=parse_primary_course(course_page))
+    return dict(associated_section=parse_associated_section(course_page))
 
 
 def parse_results(results_soup, get_details_fn, parse_result_fn):
@@ -33,6 +31,11 @@ def parse_results(results_soup, get_details_fn, parse_result_fn):
         result = parse_result_fn(tr)
         if result:
             yield get_details_fn(result)
+
+
+
+
+
 
 
 
