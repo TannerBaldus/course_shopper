@@ -72,11 +72,6 @@ class LoggedInSession(webdriver.Firefox):
 
 
 
-if __name__ == '__main__':
-    d = DuckwebSession('https://duckweb.uoregon.edu/pls/prod/twbkwbis.P_WWWLogin', '951196832', 't28561')
-
-
-
 
 
 
