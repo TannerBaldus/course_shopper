@@ -1,16 +1,29 @@
 __author__ = 'tanner'
-from duckweb_session import DuckwebSession
+from ..common_ops import get_labeled_rows, convert_and,
+from better_register.registration.logged_in_sessions import DuckwebSession
 
 
-def parse_eval_tag(eval_tag):
+def parse_eval_row(labeled_row):
+    course = dict(subject=convert_and(labeled_row['subject']), number=labeled_row['number'], title=labeled_row['title'])
+    season, year = labeled_row['term'].split(' ')
+    term = dict(season=season, year=int(year))
+    questions = {k:v for (k,v) in labeled_row.iteritems() if 'q' in k}
 
-    rows = eval_tag.find_all('td')
-    labels = ['subject', 'number', 'title', 'term', 'q1', 'q2', 'q3', 'q4', 'q5']
-    label_mapping = dict(zip(labels, rows))
-    term = label_mapping['term'].split(' ')
-    term = dict(season=term[0], year=int(term[1]))
-    course = dict(subject=label_mapping['subject'], title=label_mapping['title'], number=label_mapping['number'])
-    return dict(course=course, term=term)
+
+
+def parse_eval_table(eval_tag):
+    questions  = ['q{}'.format(i) for i in range(1, 8)]
+    labels = ['subject', 'number', 'title', 'term'] + questions + ['responses']
+    rows = get_labeled_rows(labels)
+    return parse_eval_row(rows)
+
+
+
+def get_evals():
+    duckweb_session = DuckwebSession()
+
+
+
 
 
 

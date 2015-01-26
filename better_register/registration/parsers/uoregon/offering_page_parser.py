@@ -1,5 +1,6 @@
 __author__ = 'tanner'
 
+from ..common_ops import label_table_row_data
 import string
 import re
 
@@ -123,9 +124,8 @@ def parse_vitals(table_row):
     :return: A dictionary with the above titles as keys and the
     text from the <TD> as the values
     """
-    rows = table_row.find_all('td')
     labels = ['class_type', 'crn', 'avail', 'max', 'time', 'day', 'location', 'instructor', 'notes']
-    label_mapping = dict(zip(labels, rows))
+    label_mapping = label_table_row_data(labels, table_row)
     start_end = parse_start_end(label_mapping['day'])
     label_mapping.update(start_end, meetings=parse_meetings(label_mapping['day'], label_mapping['time'],
                                                             label_mapping['location']))
@@ -257,6 +257,18 @@ def get_notes(soup):
     """
     note_divs = soup.find_all('div', class_='notes')
     return map(parse_note, note_divs)
+
+
+
+def get_course_description(soup):
+    """
+    Finds and returns the desctipion of the course.
+    :param soup: beatifulsoup obj of course page
+    :return: string of the course description
+    """
+    data_table = soup.find(class_='datadisplaytable')
+    desc_row = data_table.find_all('tr')[1]
+    return desc_row.td.text
 
 
 def parse_instructor(instructor_tag):
