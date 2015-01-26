@@ -1,5 +1,5 @@
 from django.db import models
-import  managers
+import managers
 
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
@@ -54,7 +54,6 @@ class Subject(models.Model):
     code = models.CharField(max_length=8, unique=True, primary_key=True)
     subject = models.CharField(max_length=256)
 
-
     def __unicode__(self):
         return "{}:{}".format(self.code, self.subject)
 
@@ -63,6 +62,7 @@ class Course(models.Model):
     title = models.TextField()
     number = models.IntegerField()
     subject = models.ForeignKey(Subject)
+    desc = models.TextField()
 
     class meta:
         unique_together = ('title', 'number', 'subject')
@@ -112,22 +112,24 @@ class AssociatedSection(BaseOfferingInfo):
 
 
 class Evaluation(models.Model):
+
     instructor = models.ForeignKey(Instructor, related_name='evals')
     course = models.ForeignKey(Course, related_name='evals')
-    score = models.IntegerField()
+    term = models.ForeignKey(Term, related_name='evals')
     responses = models.IntegerField()
+
     q1 = models.FloatField()
     q2 = models.FloatField()
     q3 = models.FloatField()
     q4 = models.FloatField()
     q5 = models.FloatField()
+    q6 = models.FloatField()
+    q7 = models.FloatField()
     objects = managers.EvaluationManager()
 
     def __unicode__(self):
         return "{} {} taught by {} {} score: {}".format(self.course.subject.code, self.course.number,
                                                         self.instructor.fname, self.instructor.lname, self.score)
-
-
 
 
 class WebResource(models.Model):
