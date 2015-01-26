@@ -1,0 +1,10 @@
+ARCH|Architecture
+ART|General Art
+BA|Business Administration
+BI|Biology
+FR|French
+CIS|Computer and Information Science
+MATH|Mathematics
+HIST|History
+PHYS|Physics
+SPAN|Spanish

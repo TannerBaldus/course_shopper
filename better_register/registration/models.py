@@ -1,8 +1,9 @@
 from django.db import models
-import  managers
+import managers
 
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
+    middle = models.CharField(max_length=256)
     lname = models.CharField(max_length=256)
     objects = managers.InstructorManager()
 
@@ -17,10 +18,36 @@ class Location(models.Model):
     class meta:
         unique_together = (('building', 'room'),)
 
-
     def __unicode__(self):
         return '{} {}'.format(self.building,self.room)
 
+
+class DatePeriod(models.Model):
+    day = models.CharField(max_length=1)
+    start_time = models.IntegerField()
+    end_time = models.IntegerField()
+    calendar_day = models.DateField(null=True)
+
+    class meta:
+        unique_together = (('day', 'start_time','end_time', 'calendar_day'),)
+
+    def __unicode__(self):
+        message =  "{} {}-{}".format(self.day, self.start_time, self.end_time)
+        if self.calendar_day:
+            message += " on {}".format(self.calendar_day)
+        return message
+
+
+
+class Meeting(models.Model):
+    location = models.ForeignKey(Location)
+    date_period = models.ForeignKey(DatePeriod)
+
+    class meta:
+        unique_together = (('location','date_period'),)
+
+    def __unicode__(self):
+        return 'Course Meeting at {} on {}'.format(self.location, self.date_period)
 
 
 class Subject(models.Model):
@@ -35,6 +62,7 @@ class Course(models.Model):
     title = models.TextField()
     number = models.IntegerField()
     subject = models.ForeignKey(Subject)
+    desc = models.TextField()
 
     class meta:
         unique_together = ('title', 'number', 'subject')
@@ -46,41 +74,68 @@ class Course(models.Model):
 class BaseOfferingInfo(models.Model):
 
     days = models.CharField(max_length=7)
-    location = models.ForeignKey(Location)
     crn = models.IntegerField(unique=True, primary_key=True)
+    meeting = models.ForeignKey(Meeting)
+    evals = models.ManyToManyField('Evaluation')
 
     class Meta:
         abstract = True
+
+
+class Term(models.Model):
+    season = models.CharField(max_length=7)
+    year = models.IntegerField()
+
+    class meta:
+        unique_together = ('season', 'year')
 
 
 class Offering(BaseOfferingInfo):
     instructor = models.ForeignKey(Instructor, related_name='offerings')
     course = models.ForeignKey(Course)
     credits = models.IntegerField(null=True)
+    start = models.DateField(null=True)
+    end = models.DateField(True)
     objects = managers.OfferingManager()
 
+
     def __unicode__(self):
-        return "{} {} taught by {} {} on {} in {} {}".format(self.course.subject.code, self.course.number, self.instructor.fname,
-                                              self.instructor.lname, self.days, self.location.building, self.location.room)
+        return "Offering {} taught by {} {} meeting: {}".format(self.course, self.instructor, self.meeting)
 
 
 class AssociatedSection(BaseOfferingInfo):
     instructor = models.ForeignKey(Instructor, related_name='associated_sections')
     offering = models.ForeignKey(Offering)
 
-
     def __unicode__(self):
-        return ' Associated Section taught by {} {} on {}'.format(self.instructor.fname,
-                                                                  self.instructor.lname, self.days)
+        return ' Associated Section of {} taught by {} on {}'.format(self.offering, self.instructor, self.meeting)
 
 
 class Evaluation(models.Model):
+
     instructor = models.ForeignKey(Instructor, related_name='evals')
     course = models.ForeignKey(Course, related_name='evals')
-    score = models.IntegerField()
+    term = models.ForeignKey(Term, related_name='evals')
+    responses = models.IntegerField()
+
+    q1 = models.FloatField()
+    q2 = models.FloatField()
+    q3 = models.FloatField()
+    q4 = models.FloatField()
+    q5 = models.FloatField()
+    q6 = models.FloatField()
+    q7 = models.FloatField()
     objects = managers.EvaluationManager()
 
     def __unicode__(self):
         return "{} {} taught by {} {} score: {}".format(self.course.subject.code, self.course.number,
-                                                                 self.instructor.fname, self.instructor.lname, self.score)
+                                                        self.instructor.fname, self.instructor.lname, self.score)
 
+
+class WebResource(models.Model):
+    link_text = models.TextField()
+    link_url = models.TextField()
+
+class Note(models.Model):
+    code =  models.TextField()
+    desc = models.TextField()
