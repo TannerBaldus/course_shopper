@@ -29,6 +29,8 @@ class OfferingManager(models.Manager):
         return self.filter(query)
 
 
+
+
 class EvaluationManager(models.Manager):
 
     def get_queryset(self):
@@ -43,7 +45,7 @@ class EvaluationManager(models.Manager):
     def by_instructor(self, fname, lname):
         return self.filter(instructor_fname=fname, instructor_lname=lname)
 
-    def by_score(self,score):
+    def by_score(self, score):
         return self.filter(score__gte=score)
 
 
@@ -59,6 +61,37 @@ class InstructorManager(models.Manager):
 
 
 
+
+
+class CourseManager(models.Manager):
+
+
+    def get_or_create(self, title, code, number, desc='', defaults=None, **kwargs):
+        """
+        Tries to get a course instance based on the subject_code, number and title only.
+        If a course instance is found and a non blank description is given; the course
+        instance's description will be updated.
+        If no instance is found a new course instance is created.
+
+        :param title:
+        :param code:
+        :param number:
+        :param desc:
+        :param defaults:
+        :param kwargs:
+        :return:
+
+        """
+        try:
+            course = self.get(title=title, subject__code=code, number=number)
+            if desc and course.desc != desc:
+                course.update(desc=desc)
+            return course
+
+        except self.DoesNotExist:
+            from models import Subject
+            subject = Subject.get(code=code)
+            self.create(title=title, subject=subject, number=number, desc=desc)
 
 
 
