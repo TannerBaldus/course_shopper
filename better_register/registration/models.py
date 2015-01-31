@@ -62,6 +62,7 @@ class Course(models.Model):
     title = models.TextField()
     number = models.IntegerField()
     subject = models.ForeignKey(Subject)
+    gen_eds = models.ManyToManyField(GenEd, related_name='courses')
     desc = models.TextField()
 
     class meta:
@@ -73,10 +74,8 @@ class Course(models.Model):
 
 class BaseOfferingInfo(models.Model):
 
-    days = models.CharField(max_length=7)
     crn = models.IntegerField(unique=True, primary_key=True)
-    meeting = models.ForeignKey(Meeting)
-    evals = models.ManyToManyField('Evaluation')
+    meetings = models.ForeignKey(Meeting)
 
     class Meta:
         abstract = True
@@ -91,7 +90,7 @@ class Term(models.Model):
 
 
 class Offering(BaseOfferingInfo):
-    instructor = models.ForeignKey(Instructor, related_name='offerings')
+    instructor = models.ManyToManyField(Instructor, related_name='offerings')
     course = models.ForeignKey(Course)
     credits = models.IntegerField(null=True)
     start = models.DateField(null=True)
@@ -104,7 +103,7 @@ class Offering(BaseOfferingInfo):
 
 
 class AssociatedSection(BaseOfferingInfo):
-    instructor = models.ForeignKey(Instructor, related_name='associated_sections')
+    instructor = models.ManyToManyField(Instructor, related_name='associated_sections')
     offering = models.ForeignKey(Offering)
 
     def __unicode__(self):
@@ -118,13 +117,14 @@ class Evaluation(models.Model):
     term = models.ForeignKey(Term, related_name='evals')
     responses = models.IntegerField()
 
-    q1 = models.FloatField()
-    q2 = models.FloatField()
-    q3 = models.FloatField()
-    q4 = models.FloatField()
-    q5 = models.FloatField()
-    q6 = models.FloatField()
-    q7 = models.FloatField()
+    course_quality = models.FloatField()
+    teaching_quality = models.FloatField()
+    organization = models.FloatField()
+    class_time_use = models.FloatField()
+    communication = models.FloatField()
+    grading_clarity = models.FloatField()
+    amount_learned = models.FloatField()
+
     objects = managers.EvaluationManager()
 
     def __unicode__(self):
@@ -137,5 +137,9 @@ class WebResource(models.Model):
     link_url = models.TextField()
 
 class Note(models.Model):
-    code =  models.TextField()
+    code = models.TextField()
     desc = models.TextField()
+
+class GenEd(models.Model):
+    code = models.CharField(max_length=6)
+    gen_ed = models.CharField(max_length=256)
