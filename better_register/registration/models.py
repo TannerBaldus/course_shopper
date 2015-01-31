@@ -26,10 +26,11 @@ class DatePeriod(models.Model):
     day = models.CharField(max_length=1)
     start_time = models.IntegerField()
     end_time = models.IntegerField()
-    calendar_day = models.DateField(null=True)
+    start_date = models.DateField(null=True)
+    end_date= models.DateField
 
     class meta:
-        unique_together = (('day', 'start_time','end_time', 'calendar_day'),)
+        unique_together = (('day', 'start_time','end_time', 'start_date', 'end_date'),)
 
     def __unicode__(self):
         message =  "{} {}-{}".format(self.day, self.start_time, self.end_time)
@@ -62,8 +63,10 @@ class Course(models.Model):
     title = models.TextField()
     number = models.IntegerField()
     subject = models.ForeignKey(Subject)
+    credits = models.IntegerField()
     gen_eds = models.ManyToManyField(GenEd, related_name='courses')
     desc = models.TextField()
+    fee = models.FloatField(default=0.0)
 
     class meta:
         unique_together = ('title', 'number', 'subject')
@@ -90,11 +93,10 @@ class Term(models.Model):
 
 
 class Offering(BaseOfferingInfo):
-    instructor = models.ManyToManyField(Instructor, related_name='offerings')
+    instructors = models.ManyToManyField(Instructor, related_name='offerings')
     course = models.ForeignKey(Course)
-    credits = models.IntegerField(null=True)
     start = models.DateField(null=True)
-    end = models.DateField(True)
+    end = models.DateField(null=True)
     objects = managers.OfferingManager()
 
 
