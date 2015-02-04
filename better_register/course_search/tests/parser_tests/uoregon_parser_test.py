@@ -1,4 +1,4 @@
-from better_register.registration.parsers.uoregon import offering_page_parser as uo
+from better_register.course_search.parsers.uoregon import offering_page_parser as uo
 
 __author__ = 'tanner'
 import unittest
@@ -135,7 +135,7 @@ class UO_Parse_Test(unittest.TestCase):
 
     def test_parse_start_end_empty_string(self):
          with self.assertRaises(AssertionError):
-            uo.parse_start_end("")       
+            uo.parse_start_end("")
 
     def test_parse_start_end_one_date(self):
         self.assertEqual(dict(start_date='10/1', end_date='10/1'), uo.parse_start_end('10/1'))

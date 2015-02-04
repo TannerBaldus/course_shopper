@@ -1,6 +1,6 @@
 from django.db import models
 import managers
-import common_ops
+import db_common_ops
 
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
@@ -103,29 +103,18 @@ class Course(models.Model):
 
             return new_gen_eds
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def update_course(self, **kwargs):
         no_update = ['evals', 'subject_id', 'subject', 'title', 'number']
         m2m_relations =['geneds']
         foreign_keys = ['subject']
-        valid_update = lambda field: field not in(m2m_relations+no_update,foreign_keys)
-        non_relation_fields = [field for field in self._meta.get_all_field_names() if valid_update(field)]
-        attrs_changed = common_ops.update_attrs(self,*non_relation_fields, **kwargs)
+
+        is_simple_field = lambda field: field not in(m2m_relations+no_update+foreign_keys)
+        simple_fields = [field for field in self._meta.get_all_field_names() if is_simple_field(field)]
+
+        simple_fields_changed = db_common_ops.update_simple_fields(self, simple_fields, **kwargs)
+        new_geneds, old_geneds =  db_common_ops.get_new_old(self.geneds,GenEd,'code', kwargs['geneds'])
+
+
 
 
 

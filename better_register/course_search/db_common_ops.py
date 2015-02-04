@@ -21,7 +21,7 @@ def _filter_model_pk_mapping(models, pk_field, pk_value_lst):
     :param lst_good:
     :return:
     """
-    pair_pk_model = lambda model, pk_field: (getattr(model ,pk_field), model)
+    pair_pk_model = lambda model, pk_field: (getattr(model, pk_field), model)
     check_pk_field = lambda model, pk_field, lst: getattr(model,pk_field) not in lst
 
     return dict(pair_pk_model(m, pk_field) for m in models if check_pk_field(m, pk_field, pk_value_lst))

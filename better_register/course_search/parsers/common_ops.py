@@ -1,6 +1,7 @@
 __author__ = 'tanner'
 import string
-
+from bs4 import BeautifulSoup
+import requests
 def label_table_row_data(labels, table_row, text=True):
     """
     Creates a dict of labels mapped to text in table data tags contained in a table row tag.
@@ -52,3 +53,11 @@ def convert_and(in_str):
     :return:
     """
     return in_str.replace('&', 'and')
+
+def url_to_soup(url):
+    """
+    Turns a requests response into BeautifulSoup object
+    :param url: url to a webpage
+    :return: a beautiful soup object of the webpage
+    """
+    return BeautifulSoup(requests.get(url).text)

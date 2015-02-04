@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('communication', models.FloatField()),
                 ('grading_clarity', models.FloatField()),
                 ('amount_learned', models.FloatField()),
-                ('course', models.ForeignKey(related_name=b'evals', to='registration.Course')),
+                ('course', models.ForeignKey(related_name=b'evals', to='course_search.Course')),
             ],
             options={
             },
@@ -105,8 +105,8 @@ class Migration(migrations.Migration):
             name='Meeting',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('date_period', models.ForeignKey(to='registration.DatePeriod')),
-                ('location', models.ForeignKey(to='registration.Location')),
+                ('date_period', models.ForeignKey(to='course_search.DatePeriod')),
+                ('location', models.ForeignKey(to='course_search.Location')),
             ],
             options={
             },
@@ -129,9 +129,9 @@ class Migration(migrations.Migration):
                 ('crn', models.IntegerField(unique=True, serialize=False, primary_key=True)),
                 ('start', models.DateField(null=True)),
                 ('end', models.DateField(null=True)),
-                ('course', models.ForeignKey(to='registration.Course')),
-                ('instructors', models.ManyToManyField(related_name=b'offerings', to='registration.Instructor')),
-                ('meetings', models.ForeignKey(to='registration.Meeting')),
+                ('course', models.ForeignKey(to='course_search.Course')),
+                ('instructors', models.ManyToManyField(related_name=b'offerings', to='course_search.Instructor')),
+                ('meetings', models.ForeignKey(to='course_search.Meeting')),
             ],
             options={
                 'abstract': False,
@@ -173,43 +173,43 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='evaluation',
             name='instructor',
-            field=models.ForeignKey(related_name=b'evals', to='registration.Instructor'),
+            field=models.ForeignKey(related_name=b'evals', to='course_search.Instructor'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='evaluation',
             name='term',
-            field=models.ForeignKey(related_name=b'evals', to='registration.Term'),
+            field=models.ForeignKey(related_name=b'evals', to='course_search.Term'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='course',
             name='geneds',
-            field=models.ManyToManyField(related_name=b'courses', to='registration.GenEd'),
+            field=models.ManyToManyField(related_name=b'courses', to='course_search.GenEd'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='course',
             name='subject',
-            field=models.ForeignKey(to='registration.Subject'),
+            field=models.ForeignKey(to='course_search.Subject'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='associatedsection',
             name='instructor',
-            field=models.ManyToManyField(related_name=b'associated_sections', to='registration.Instructor'),
+            field=models.ManyToManyField(related_name=b'associated_sections', to='course_search.Instructor'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='associatedsection',
             name='meetings',
-            field=models.ForeignKey(to='registration.Meeting'),
+            field=models.ForeignKey(to='course_search.Meeting'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='associatedsection',
             name='offering',
-            field=models.ForeignKey(to='registration.Offering'),
+            field=models.ForeignKey(to='course_search.Offering'),
             preserve_default=True,
         ),
     ]

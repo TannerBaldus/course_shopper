@@ -1,6 +1,6 @@
 # coding: utf-8
-import registration.models as m
-import registration.data_entry as de
+import course_search.models as m
+import course_search.data_entry as de
 from data import eval
 y = [i.__unicode__() for i in m.Course.objects.all()]
 for i in eval:
