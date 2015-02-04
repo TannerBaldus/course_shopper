@@ -1,5 +1,6 @@
 from django.db import models
 import managers
+import db_common_ops
 
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
@@ -27,7 +28,7 @@ class DatePeriod(models.Model):
     start_time = models.IntegerField()
     end_time = models.IntegerField()
     start_date = models.DateField(null=True)
-    end_date= models.DateField
+    end_date= models.DateField(null=True)
 
     class meta:
         unique_together = (('day', 'start_time','end_time', 'start_date', 'end_date'),)
@@ -64,8 +65,9 @@ class Course(models.Model):
     number = models.IntegerField()
     subject = models.ForeignKey(Subject)
     credits = models.IntegerField()
-    gen_eds = models.ManyToManyField(GenEd, related_name='courses')
-    desc = models.TextField()
+    geneds = models.ManyToManyField('GenEd', related_name='courses')
+    desc = models.TextField(null=True)
+    prereq_text = models.TextField(null=True)
     fee = models.FloatField(default=0.0)
 
     class meta:
@@ -73,6 +75,58 @@ class Course(models.Model):
 
     def __unicode__(self):
         return "{} {} {}".format(self.subject.code, self.number, self.title)
+
+
+
+    def update_gends(self, gen_ed_list):
+
+        old_gen_eds = {i.code: i for i in self.geneds.all() if i.code not in gen_ed_list}
+
+        if not gen_ed_list and self.geneds.all():
+            self.geneds.clear()
+            return 1
+
+        else:
+            new_gen_eds = 0
+            updated_gen_eds = []
+
+            for gen_ed_dict in gen_ed_list:
+
+                if gen_ed_dict.get('code') not in old_gen_eds:
+                    gen_ed = GenEd.objects.get_or_create(**gen_ed_dict)
+                    updated_gen_eds.append(gen_ed)
+                    new_gen_eds += 1
+
+            if new_gen_eds > 0:
+                self.geneds.remove(*old_gen_eds.values())
+                self.geneds.add(*updated_gen_eds)
+
+            return new_gen_eds
+
+    def update_course(self, **kwargs):
+        no_update = ['evals', 'subject_id', 'subject', 'title', 'number']
+        m2m_relations =['geneds']
+        foreign_keys = ['subject']
+
+        is_simple_field = lambda field: field not in(m2m_relations+no_update+foreign_keys)
+        simple_fields = [field for field in self._meta.get_all_field_names() if is_simple_field(field)]
+
+        simple_fields_changed = db_common_ops.update_simple_fields(self, simple_fields, **kwargs)
+        new_geneds, old_geneds =  db_common_ops.get_new_old(self.geneds,GenEd,'code', kwargs['geneds'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class BaseOfferingInfo(models.Model):

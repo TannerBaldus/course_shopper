@@ -5,8 +5,6 @@ from django.db.models import Avg
 from django.db.models import Q
 import operator
 
-
-
 class OfferingManager(models.Manager):
 
     def get_queryset(self):
@@ -29,6 +27,23 @@ class OfferingManager(models.Manager):
         return self.filter(query)
 
 
+    def create_offering(self, crn, course, meetings, instructor, term, **kwargs):
+        """
+
+        :param crn:
+        :param course:
+        :param meetings:
+        :return:
+        """
+        from models import Meeting, Course, Instructor, Offering, Term
+        course = Course.objects.get_or_create(**course)
+        term = Term.objects.get_or_create(**term)
+        instructor = Instructor.get_or_create(**instructor)
+        offering = Offering(crn=crn, **kwargs)
+
+        for m in meetings:
+            meeting = Meeting.objects.get_or_create(**m)
+            offering.meetings.add(meeting)
 
 
 class EvaluationManager(models.Manager):
@@ -66,7 +81,8 @@ class InstructorManager(models.Manager):
 class CourseManager(models.Manager):
 
 
-    def get_or_create(self, title, code, number, desc='', defaults=None, **kwargs):
+
+    def get_or_create(self, title, code, number,credits, defaults=None, **kwargs):
         """
         Tries to get a course instance based on the subject_code, number and title only.
         If a course instance is found and a non blank description is given; the course
@@ -82,16 +98,17 @@ class CourseManager(models.Manager):
         :return:
 
         """
+        from models import Subject, Note, GenEd
         try:
             course = self.get(title=title, subject__code=code, number=number)
-            if desc and course.desc != desc:
-                course.update(desc=desc)
+            course.update(credits=credits,**kwargs)
             return course
 
         except self.DoesNotExist:
-            from models import Subject
+
             subject = Subject.get(code=code)
-            self.create(title=title, subject=subject, number=number, desc=desc)
+            course = self.create(title=title, subject=subject, number=number, credits=credits, **kwargs)
+            return course
 
 
 

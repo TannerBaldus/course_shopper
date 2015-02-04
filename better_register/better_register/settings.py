@@ -40,7 +40,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'registration',
+    'course_search',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -65,12 +65,12 @@ WSGI_APPLICATION = 'better_register.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'classes',
-        'USER': 'guest',
-        'PASSWORD': 'guest',
-        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'course_db',
+        'USER': 'course_shopper',
+        'PASSWORD': '4JsN39GJ',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

@@ -209,8 +209,6 @@ def parse_course_code(text):
     return courses
 
 
-
-
 def get_prereqs(soup):
     """
     Gets the prereq text of the course. Formatting is pretty inconsistent. So for now we will just save display the
