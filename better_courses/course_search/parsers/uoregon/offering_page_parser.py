@@ -42,7 +42,8 @@ def parse_time(time_str):
 def parse_days(day_str):
     """
     Sometimes offerings have one off meetings denoted by the form: m 10/1.
-    If it isn't of this form it's a normal meeting and the calendar day will be None.
+    Short classes are of the form: m 10/1-10/6
+    If the day_str is neither of these forms the start_date and end_date will be None.
 
     :param day_str: a string of the days of a meeting. the text in the cell next to the time.
     :return: list of dicts of the form {weekday, }
@@ -99,20 +100,24 @@ def parse_location(location_str):
         return dict(building=location_lst[room_index - 1], room=location_lst[room_index])
 
 
-def parse_meetings(days_str, time_str, location):
+def parse_meetings(days_str, time_str, location_str):
     """
     Since classes can have different meetings on different days we parse the time into day, time pairs.
 
-    parse_meetings('mf',1600-1650)
-    >{'m':{start:1600,end:1650}, 'f':{start:1600,end:1650}}
-    :param days: string of days mwf
-    :param time: string fo start and end times
+    parse_meetings('mf',1600-1650, 'MCK 201')
+    >[{'date_period : {weekday: m start:1600,end:1650 start_date:None,end_date:None}, location:{building:MCK, room:201}}
+    >,{'date_period : {weekday: f start:1600,end:1650 start_date:None,end_date:None}, location:{building:MCK, room:201}]
+
+    :param day_str: string of days e.g. mwf
+    :param time_str: string fo start and end times
+    :param location_str: string with the building and room number
     :return:a dict of days mapped to start and end times
     """
     times = parse_time(time_str)
     days = parse_days(days_str)
-    [day.update(times, location=parse_location(location)) for day in days]
-    return days
+    for day in days:
+        day.update(times)
+    return [dict(date_period=day, location=parse_location(location_str)) for day in days]
 
 
 def parse_vitals(table_row):
@@ -306,7 +311,7 @@ def get_instructors(soup):
     :param soup:
     :return:
     """
-    instructor_elements = [tag.find_next('td').a for tag in  soup.find_all('td', text='Instructor:')]
+    instructor_elements = [tag.find_next('td').a for tag in soup.find_all('td', text='Instructor:')]
     return map(parse_instructor, instructor_elements)
 
 
@@ -329,7 +334,7 @@ def get_title_credit_text(soup):
     The tags containg the credits and the title string are in the same TR so we get both strings here.
     :rtype : list
     :param soup: beautifulsoup obj
-    :return: [title_tag, credit_]
+    :return: (title_text, credit_text)
     get_title_credit_text(course_soup)
     >['CIS 210 Computer Science I >4', '4.00 cr.']
     """
@@ -352,7 +357,7 @@ def parse_title(title_text):
     :return: the course code
     """
 
-    subject, number =parse_course_code(title_text)[0].values()
+    subject, number = parse_course_code(title_text)[0].values()
     end_of_number = title_text.find(str(number)) + 3
     gen_ed_start = title_text.find('>')  # If there's a > in the title its a gen ed
     gen_eds = parse_gen_eds(title_text)
@@ -408,7 +413,8 @@ def get_parent_offering(soup):
 def get_course(soup):
     title_text, credit_text = get_title_credit_text(soup)
     course = parse_title(title_text)
-    course.update(get_notes(soup), get_course_fee(soup))
+    credits = get_credits(credit_text)
+    course.update(notes=get_notes(soup), fee=get_course_fee(soup))
     return course
 
 
