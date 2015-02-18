@@ -1,8 +1,7 @@
-from better_register.course_search.parsers.uoregon import offering_page_parser as uo
-
 __author__ = 'tanner'
 import unittest
 from bs4 import BeautifulSoup
+import course_search.parsers.uoregon.offering_page_parser as uo
 
 
 class UO_Parse_Test(unittest.TestCase):
@@ -94,7 +93,7 @@ class UO_Parse_Test(unittest.TestCase):
 
     def test_parse_title(self):
         result = uo.parse_title(self.title_text)
-        correct_result = dict(subject=u'CIS', number=210, title=u'Computer Science I',gen_eds=['>4'])
+        correct_result = dict(subject=u'CIS', number=210, title=u'Computer Science I', gen_eds=['>4'])
         self.assertEqual(correct_result, result)
 
     def test_no_course_fee(self):
@@ -108,9 +107,9 @@ class UO_Parse_Test(unittest.TestCase):
 
     @unittest.skip('Skipping until re-implement parse_prereqs')
     def test_parse_prereq_and(self):
-         correct_result = [dict(code='PEO', number=285), dict(code='PEO', number=351)]
-         result = uo.get_prereqs(self.peo_class)
-         self.assertEqual(correct_result, result)
+        correct_result = [dict(code='PEO', number=285), dict(code='PEO', number=351)]
+        result = uo.get_prereqs(self.peo_class)
+        self.assertEqual(correct_result, result)
 
     def test_no_prereq(self):
         result = uo.get_prereqs(self.diff_days)
@@ -134,14 +133,15 @@ class UO_Parse_Test(unittest.TestCase):
             uo.parse_start_end(self.no_date)
 
     def test_parse_start_end_empty_string(self):
-         with self.assertRaises(AssertionError):
+        with self.assertRaises(AssertionError):
             uo.parse_start_end("")
 
     def test_parse_start_end_one_date(self):
         self.assertEqual(dict(start_date='10/1', end_date='10/1'), uo.parse_start_end('10/1'))
 
     def test_parse_days(self):
-        correct_result = [dict(weekday='m', start_date=None, end_date=None), dict(weekday='w', start_date=None, end_date=None )]
+        correct_result = [dict(weekday='m', start_date=None, end_date=None),
+                          dict(weekday='w', start_date=None, end_date=None)]
         self.assertItemsEqual(correct_result, uo.parse_days(self.no_date))
 
     def test_parse_days_date(self):
@@ -153,6 +153,20 @@ class UO_Parse_Test(unittest.TestCase):
     def test_get_course_fee(self):
         result = uo.get_course_fee(self.peo_class)
         self.assertEqual(205.00, result)
+
+
+    def test_parse_meetings(self):
+        day_str = 'mw'
+        time_str = '1600-1650'
+        location_str = 'MCK 201'
+
+        correct_result =[ {'date_period': {'start': 1600, 'end': 1650, 'start_date': None, 'end_date': None, 'weekday': 'm'},
+          'location': {'building': 'MCK', 'room': '201'}},
+         {'date_period': {'start': 1600, 'end': 1650, 'start_date': None, 'end_date': None, 'weekday': 'w'},
+          'location': {'building': 'MCK', 'room': '201'}}]
+        
+        result = uo.parse_meetings(day_str, time_str, location_str)
+        self.assertItemsEqual(correct_result, result)
 
     def test_get_web_resources(self):
         correct_result = [
