@@ -1,6 +1,7 @@
 __author__ = 'tanner'
 
 from ..common_ops import label_table_row_data
+from datetime import datetime
 import string
 import re
 
@@ -386,15 +387,15 @@ def get_web_resources(soup):
     """
     Some course offerings have important links about course policies. We parse them here into dicts of link_url
     and link_text.
-    :param soup:
-    :return:
+    :param soup:a beautiful soup object
+    :return: a list of dicts of the form dict(link_text='Lorem Ipsum', link_url='foobar.com')
     """
     web_resource_img = soup.find('img', title='Additional Web Resources Available')
     if web_resource_img:
         resource_anchors = web_resource_img.find_next('td').find_all('a')
         parse_anchor = lambda a: dict(link_text=a.text, link_url=a['href'])
         return map(parse_anchor, resource_anchors) or None
-    return None
+    return []
 
 
 def get_parent_offering(soup):
@@ -418,6 +419,29 @@ def get_course(soup):
     return course
 
 
+def convert_meeting_to_datetime(meeting_dicts_list,year):
+    """
+
+    :param meeting_dicts_list:
+    :return:
+    """
+    add_year = lambda date_str: '{}/{}'.format(date_str, year)
+
+    make_date_obj = lambda date_str: datetime.strptime(add_year(date_str), '%m/%d/%Y').date()
+    for meeting_dict in meeting_dicts_list:
+        start_date, end_date = meeting_dict['date_period']['start_date'], meeting_dict['date_period']['end_date']
+        if not start_date:
+            continue
+
+        meeting_dict['date_period']['start_date'] = make_date_obj(start_date)
+        meeting_dict['date_period']['end_date'] = make_date_obj(end_date)
+
+    return  meeting_dicts_list
+
+
+
+
+
 def get_primary_offering(soup):
     """
     :param soup:
@@ -425,11 +449,12 @@ def get_primary_offering(soup):
     """
 
     primary_dict = get_vitals(soup)
-    meetings = primary_dict.get('meetings') + get_multiple_meetings(soup)
+    term = get_term()
+    meetings = convert_meeting_to_datetime(primary_dict.get('meetings') + get_multiple_meetings(soup), term.get('year'))
     course = get_course(soup)
 
-    primary_dict.update(course=course, credits=get_credits(soup), term=get_term(soup), instructors=get_instructors(soup),
-                        meetings=meetings
+    primary_dict.update(course=course, term=get_term(soup), instructors=get_instructors(soup),
+                        meetings=meetings, web_resources=get_web_resources(soup)
 
     )
     return primary_dict

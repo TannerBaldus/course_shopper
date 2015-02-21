@@ -1,7 +1,7 @@
 __author__ = 'tanner'
 from search_page_parser import parse_results
+from course_search.models import Subject
 from subject_codes import parse_subject_table
-from better_register.course_search.models import Subject
 from ..common_ops import url_to_soup
 
 
@@ -45,11 +45,11 @@ def convert_to_term_number(season, year):
 def get_subject_codes():
     """
 
+
     :return:
     """
     soup = url_to_soup(subject_code_page)
-    table = soup.find(id='DataTables_Table_0')
-    return parse_subject_table(table)
+    return parse_subject_table(soup)
 
 
 

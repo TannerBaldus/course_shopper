@@ -34,14 +34,39 @@ def label_table_row_data(labels, table_row, text=True):
     return label_mapping
 
 
-def get_labeled_rows(labels, table):
+def get_labels_from_header(rows, to_lower):
     """
-    :param labels:
-    :param table:
-    :return:
+    Given a list of rows gets the returns a list of the text found in th tags in the first row. Will convert
+    the header text to lower case if the argument to_lower is true.
+    Also returns a new list of rows without the row with the header data
+    :param rows: list of beautiful soup tr tags
+    :param to_lower: a boolean indicating if the header text should be lower case
+    :return: a list of text contained in the th tags, list of rows without header row.
+    """
+    make_lower = lambda in_str: in_str.lower if to_lower else in_str
+    headers = rows[0].find_all('th')
+    assert(headers, 'no header data found in first row.')
+    labels = [make_lower(header.text.strip()) for header in headers]
+    return labels, rows[1:]
+
+
+def get_labeled_rows(table, labels=[], to_lower=True):
+    """
+    Takes a beautfiulsoup table tag and returns a list of dictonaries mapping the text from td tags to labels from each
+    row. These labels can be provided as an argument, if no labels are given the function will try and get labels from
+    th tags in the first row. When providing labels as an argument the order should correspond to the order of
+    columns from left to right. Change to_lower to be false if when getting labels from the header when we want
+    to maintain the capatilzation of the header text.
+
+    :param table: a beautfiulsoup table tag
+    :param labels: optional a list of labels to map td text to
+    :param to_lower: a boolean indicating if the header text should be lower case default true
+    :return: a list of dicts mapping the text from td tags to labels
     """
     rows = table.find_all('tr')
     assert len(rows) != 0, "There are no rows in this table: {}".format(rows)
+    if not labels:
+        labels, rows = get_labels_from_header(rows, to_lower)
     labeled_rows = (label_table_row_data(labels, row) for row in rows)
     return labeled_rows
 

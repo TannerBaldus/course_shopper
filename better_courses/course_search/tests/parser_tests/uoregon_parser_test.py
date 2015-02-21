@@ -1,5 +1,6 @@
 __author__ = 'tanner'
 import unittest
+import datetime
 from bs4 import BeautifulSoup
 import course_search.parsers.uoregon.offering_page_parser as uo
 
@@ -164,7 +165,7 @@ class UO_Parse_Test(unittest.TestCase):
           'location': {'building': 'MCK', 'room': '201'}},
          {'date_period': {'start': 1600, 'end': 1650, 'start_date': None, 'end_date': None, 'weekday': 'w'},
           'location': {'building': 'MCK', 'room': '201'}}]
-        
+
         result = uo.parse_meetings(day_str, time_str, location_str)
         self.assertItemsEqual(correct_result, result)
 
@@ -191,6 +192,7 @@ class UO_Parse_Test(unittest.TestCase):
         )
         result = uo.parse_note(self.note_img_tag)
 
+
     def test_get_notes(self):
         correct_result = [
             dict(code='b', desc='Course articles and information available on course website'),
@@ -213,6 +215,23 @@ class UO_Parse_Test(unittest.TestCase):
 
         result = uo.get_course_description(self.course_soup)
         self.assertEqual(correct_result, result)
+
+    def test_convert_meeting_to_date(self):
+        test_meetings = [ {'date_period': {'start': 1600, 'end': 1650, 'start_date':'10/1', 'end_date': '10/6', 'weekday': 'm'},
+          'location': {'building': 'MCK', 'room': '201'}},
+         {'date_period': {'start': 1600, 'end': 1650, 'start_date': '10/1', 'end_date':'10/6', 'weekday': 'w'},
+          'location': {'building': 'MCK', 'room': '201'}}]
+        year = 2015
+        start_date = datetime.datetime(year,10,1).date()
+        end_date = datetime.datetime(year, 10,6).date()
+
+        correct_ouput = [ {'date_period': {'start': 1600, 'end': 1650, 'start_date': start_date, 'end_date': end_date, 'weekday': 'm'},
+          'location': {'building': 'MCK', 'room': '201'}},
+         {'date_period': {'start': 1600, 'end': 1650, 'start_date': start_date, 'end_date': end_date, 'weekday': 'w'},
+          'location': {'building': 'MCK', 'room': '201'}}]
+
+        self.assertEqual(correct_ouput,uo.convert_meeting_to_datetime(test_meetings,year))
+
 
 
 
