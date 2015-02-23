@@ -28,6 +28,16 @@ def to_int(in_string):
     except ValueError:
         return in_string
 
+def is_tba(in_str):
+    """
+
+    :param in_str:
+    :return:
+    """
+    in_str = in_str.lower()
+    return 'tba' in in_str
+
+
 
 def parse_time(time_str):
     """
@@ -36,6 +46,8 @@ def parse_time(time_str):
     :param time_str: string of start and end times e.g. 1800-1850
     :return: None
     """
+    if is_tba(time_str):
+        return dict(start='tba', end='tba')
     start, end = [int(t.lstrip('0')) for t in time_str.split('-')]
     return dict(start=start, end=end)
 
@@ -49,6 +61,10 @@ def parse_days(day_str):
     :param day_str: a string of the days of a meeting. the text in the cell next to the time.
     :return: list of dicts of the form {weekday, }
     """
+
+    if is_tba(day_str):
+        return [dict(start_date=None,end_date=None, weekday='tba')]
+
     day_lst = day_str.split(' ')
     weekdays = day_lst[0]
     date_dict = dict(start_date=None,end_date=None)
@@ -89,6 +105,9 @@ def parse_location(location_str):
     :param location_str:
     :return:
     """
+    if is_tba(location_str):
+        return dict(building='tba', room='tba')
+
     location_lst = location_str.split(' ')
 
     if len(location_lst) == 1:
@@ -114,8 +133,12 @@ def parse_meetings(days_str, time_str, location_str):
     :param location_str: string with the building and room number
     :return:a dict of days mapped to start and end times
     """
+
+
     times = parse_time(time_str)
     days = parse_days(days_str)
+
+
     for day in days:
         day.update(times)
     return [dict(date_period=day, location=parse_location(location_str)) for day in days]
@@ -174,8 +197,7 @@ def get_multiple_meetings(soup):
     is_meeting_tag = lambda tag: True if tag and tag.td and re.match(r'(\d{4}-\d{4})', tag.td.text) else False
     multiple_meeting_tags = soup.find_all(is_meeting_tag)
     get_args = lambda tr: [td.text for td in tr.find_all('td')]
-    for tr in multiple_meeting_tags:
-        yield parse_meetings(get_args(tr))
+    return [parse_meetings(get_args(tr)) for tr in multiple_meeting_tags]
 
 
 def get_term(soup):
@@ -282,7 +304,7 @@ def get_course_description(soup):
     """
     data_table = soup.find(class_='datadisplaytable')
     desc_row = data_table.find_all('tr')[1]
-    return desc_row.td.text
+    return desc_row.td.text or ''
 
 
 def parse_instructor(instructor_tag):
@@ -445,7 +467,7 @@ def get_course(soup):
     title_text, credit_text = get_title_credit_text(soup)
     course = parse_title(title_text)
     credits = get_credits(credit_text)
-    course.update(notes=get_notes(soup), fee=get_course_fee(soup))
+    course.update(notes=get_notes(soup), fee=get_course_fee(soup), credits=credits, desc=get_course_description(soup))
     return course
 
 
@@ -458,7 +480,7 @@ def get_primary_offering(soup):
     """
 
     primary_dict = get_vitals(soup)
-    term = get_term()
+    term = get_term(soup)
     meetings = convert_meeting_to_datetime(primary_dict.get('meetings') + get_multiple_meetings(soup), term.get('year'))
     course = get_course(soup)
 
