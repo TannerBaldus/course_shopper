@@ -364,13 +364,19 @@ def get_title_credit_text(soup):
     return [remove_nbsp(tag.text) for tag in soup.find(class_="datadisplaytable").find('tr').find_all('td')]
 
 
-def get_credits(credit_text):
+def parse_credits(credit_text):
     """
     Returns the number of credits the course is worth.
     :param credit_text: the tag containing the credits
     :return:
     """
-    return float(credit_text.split(' ')[0])
+    credit_lst = credit_text.split(' ')[0].split('-')
+    min_credits, max_credits = 2*[credit_lst[0]]
+
+    if len(credit_lst) == 2:
+        max_credits = credit_lst[1]
+
+    return dict(min_credits=min_credits, max_credits=max_credits)
 
 
 def parse_title(title_text):
@@ -466,8 +472,8 @@ def get_course(soup):
     """
     title_text, credit_text = get_title_credit_text(soup)
     course = parse_title(title_text)
-    credits = get_credits(credit_text)
-    course.update(notes=get_notes(soup), fee=get_course_fee(soup), credits=credits, desc=get_course_description(soup))
+    credits = parse_credits(credit_text)
+    course.update(credits, notes=get_notes(soup), fee=get_course_fee(soup), desc=get_course_description(soup))
     return course
 
 

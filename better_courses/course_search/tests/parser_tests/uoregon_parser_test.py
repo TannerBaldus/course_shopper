@@ -89,8 +89,9 @@ class UO_Parse_Test(unittest.TestCase):
         self.assertEqual([self.title_text, self.credit_text], result)
 
     def test_get_credits(self):
-        result = uo.get_credits(self.credit_text)
-        self.assertEqual(4.00, result)
+        result = uo.parse_credits(self.credit_text)
+        correct_result = dict(min_credits=4.0, max_credits=4.0)
+        self.assertItemsEqual(correct_result, result)
 
     def test_parse_title(self):
         result = uo.parse_title(self.title_text)
@@ -233,7 +234,25 @@ class UO_Parse_Test(unittest.TestCase):
         self.assertEqual(correct_ouput,uo.convert_meeting_to_datetime(test_meetings,year))
 
 
+    def test_get_course(self):
+        correct_result = {'min_credits': 4.0,
+                          'max_credits':4.0,
+         'desc': u'Basic concepts and practices of computer science. Topics include algorithmic problem solving, '
+                 u'levels of abstraction, object-oriented design and programming, software organization, analysis of '
+                 u'algorithm and data structures. Sequence.',
+         'fee': 0.0,
+         'gen_eds': [u'>4'],
+         'notes': [{'code': u'A', 'desc': u'Mandatory Attendance'}],
+         'number': 210,
+         'subject': u'CIS',
+         'title': u'Computer Science I'}
+        self.assertItemsEqual(correct_result, uo.get_course(self.course_soup))
 
+
+    def test_credit_range(self):
+        test_text = '1.00-12.00'
+        correct_result = dict(min_credits=1.0,max_credits=12.0)
+        self.assertItemsEqual(correct_result,uo.parse_credits(test_text))
 
 
 
