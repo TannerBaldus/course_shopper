@@ -28,6 +28,17 @@ def to_int(in_string):
     except ValueError:
         return in_string
 
+def is_float(in_str):
+    """
+    Checks if a str can be a float. Useful in the get_fee function
+    :param in_str:
+    :return:
+    """
+    try:
+        float(in_str)
+        return True
+    except ValueError:
+        return False
 def is_tba(in_str):
     """
 
@@ -67,7 +78,7 @@ def parse_days(day_str):
 
     day_lst = day_str.split(' ')
     weekdays = day_lst[0]
-    date_dict = dict(start_date=None,end_date=None)
+    date_dict = dict(start_date=None, end_date=None)
 
     if len(day_lst) > 1:
         date_dict = parse_start_end(day_lst[1])
@@ -84,7 +95,7 @@ def parse_start_end(calendar_day_str):
     :return: a dict of the form {start_date,end_date}
     """
     assert calendar_day_str, 'Must be called on a non empty string '
-    assert re.search(r'\d{2}\/\d{1,2}', calendar_day_str), 'Must be called on string containing dates'
+    assert re.search(r'\d{1,2}\/\d{1,2}', calendar_day_str), 'Must be called on string containing dates'
 
 
     day_lst = calendar_day_str.split('-')
@@ -197,7 +208,7 @@ def get_multiple_meetings(soup):
     is_meeting_tag = lambda tag: True if tag and tag.td and re.match(r'(\d{4}-\d{4})', tag.td.text) else False
     multiple_meeting_tags = soup.find_all(is_meeting_tag)
     get_args = lambda tr: [td.text for td in tr.find_all('td')]
-    return [parse_meetings(get_args(tr)) for tr in multiple_meeting_tags]
+    return [parse_meetings(*get_args(tr)) for tr in multiple_meeting_tags]
 
 
 def get_term(soup):
@@ -313,15 +324,31 @@ def parse_instructor(instructor_tag):
     :param instructor_str:
     :return:
     """
-    full_name = instructor_tag['target'].replace('.', '').split(' ')
-    email = instructor_tag['href'].replace('mailto:', '')
+    if not instructor_tag.a:
+        instructor_tag = instructor_tag.text.strip()
+        email = None
 
-    if len(full_name) == 3:
+        if is_tba(instructor_tag):
+            return dict(fname='tba',middle=None, lname='', email=None)
+
+        else:   ##Sometimes a class is just taught by STAFF
+            return dict(fname='STAFF', middle=None, lname='', email=None)
+    else:
+        full_name = instructor_tag.a['target'].replace('.', '').split(' ')
+        email = instructor_tag.a['href'].replace('mailto:', '')
+
+    if len(full_name) > 3:
+        fname, lname = full_name[0], full_name[-1]
+        middle = ' '.join(full_name[1:-1])
+
+    elif len(full_name) == 3:
         fname, middle, lname = full_name
 
     else:
         fname, lname = full_name
         middle = None
+
+
 
     return dict(fname=fname, middle=middle, lname=lname, email=email)
 
@@ -334,7 +361,7 @@ def get_instructors(soup):
     :param soup:
     :return:
     """
-    instructor_elements = [tag.find_next('td').a for tag in soup.find_all('td', text='Instructor:')]
+    instructor_elements = [tag.find_next('td') for tag in soup.find_all('td', text='Instructor:')]
     return map(parse_instructor, instructor_elements)
 
 
@@ -399,16 +426,31 @@ def parse_title(title_text):
     return dict(subject=subject, number=number, title=title.strip(), gen_eds=gen_eds)
 
 
+
+def parse_course_fee(fee_text):
+    """
+
+    :param fee_text: text that contains the course fee
+    :return:
+    """
+    fee_per_credit = False or 'per credit' in fee_text
+    tag_text_lst = fee_text.lower().replace('$','').split(' ')
+    fee = [is_float(i) for i in tag_text_lst][0]
+    return dict(fee=fee, fee_per_credit=fee_per_credit)
+
+
 def get_course_fee(soup):
     """
     Gets the course fee of a course returns 0.0 if there is no fee.
     :param soup: beautiful soup obj
-    :return: float of course fee, 0.0 if no fee
+    :return: a dict mapping the fee and fee_per_credit bool
     """
     tag = soup.find('td', text=re.compile('\$'))
+    fee_per_credit = False
+    fee = 0.0
     if tag:
-        return float(tag.text.replace('$', ''))
-    return 0.0
+        return parse_course_fee(tag.text)
+    return dict(fee=0.0, fee_per_credit=False)
 
 
 def get_web_resources(soup):
