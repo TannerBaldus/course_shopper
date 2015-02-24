@@ -131,7 +131,7 @@ def parse_location(location_str):
         return dict(building=location_lst[room_index - 1], room=location_lst[room_index])
 
 
-def parse_meetings(days_str, time_str, location_str):
+def parse_meetings(time_str, days_str,location_str):
     """
     Since classes can have different meetings on different days we parse the time into day, time pairs.
 
@@ -145,7 +145,7 @@ def parse_meetings(days_str, time_str, location_str):
     :return:a dict of days mapped to start and end times
     """
 
-
+    print(days_str,time_str,location_str)
     times = parse_time(time_str)
     days = parse_days(days_str)
 
@@ -174,7 +174,7 @@ def parse_vitals(table_row):
     """
     labels = ['class_type', 'crn', 'avail', 'max', 'time', 'day', 'location', 'instructor', 'notes']
     label_mapping = label_table_row_data(labels, table_row)
-    label_mapping.update(meetings=parse_meetings(label_mapping['day'], label_mapping['time'],
+    label_mapping.update(meetings=parse_meetings(label_mapping['time'], label_mapping['day'],
                                                             label_mapping['location']))
 
     map(label_mapping.pop, ['day', 'time', 'location', 'instructor', 'notes'])
@@ -208,7 +208,10 @@ def get_multiple_meetings(soup):
     is_meeting_tag = lambda tag: True if tag and tag.td and re.match(r'(\d{4}-\d{4})', tag.td.text) else False
     multiple_meeting_tags = soup.find_all(is_meeting_tag)
     get_args = lambda tr: [td.text for td in tr.find_all('td')]
-    return [parse_meetings(*get_args(tr)) for tr in multiple_meeting_tags]
+    meetings = []
+    for tr in multiple_meeting_tags:
+        meetings += parse_meetings(*get_args(tr))
+    return meetings
 
 
 def get_term(soup):
@@ -531,7 +534,6 @@ def get_primary_offering(soup):
     term = get_term(soup)
     meetings = convert_meeting_to_datetime(primary_dict.get('meetings') + get_multiple_meetings(soup), term.get('year'))
     course = get_course(soup)
-
     primary_dict.update(course=course, term=get_term(soup), instructors=get_instructors(soup),
                         meetings=meetings, web_resources=get_web_resources(soup)
 
