@@ -122,7 +122,7 @@ class Offering(BaseOfferingInfo):
     instructors = models.ManyToManyField(Instructor, related_name='offerings')
     course = models.ForeignKey(Course)
     objects = managers.OfferingManager()
-    term = models.ForeignKey(Term,related_name='offerings')
+    term = models.ForeignKey(Term, related_name='offerings')
 
 
 
@@ -133,7 +133,6 @@ class Offering(BaseOfferingInfo):
 class AssociatedSection(BaseOfferingInfo):
     instructors = models.ManyToManyField(Instructor, related_name='associated_sections')
     offering = models.ForeignKey(Offering)
-    term = models.ForeignKey(Term, related_name='associated_sections')
     objects = managers.AssociatedSectionManager()
 
     def __unicode__(self):
