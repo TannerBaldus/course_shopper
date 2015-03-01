@@ -7,6 +7,7 @@ class Instructor(models.Model):
     fname = models.CharField(max_length=256)
     middle = models.CharField(max_length=256, null=True)
     lname = models.CharField(max_length=256)
+    email = models.EmailField(null=True)
     objects = managers.InstructorManager()
 
     def __unicode__(self):
@@ -25,7 +26,7 @@ class Location(models.Model):
 
 
 class DatePeriod(models.Model):
-    day = models.CharField(max_length=1)
+    day = models.CharField(max_length=3)
     start_time = models.IntegerField()
     end_time = models.IntegerField()
     start_date = models.DateField(null=True)
@@ -44,6 +45,7 @@ class DatePeriod(models.Model):
 class Meeting(models.Model):
     location = models.ForeignKey(Location)
     date_period = models.ForeignKey(DatePeriod)
+    objects = managers.MeetingManager()
 
     class meta:
         unique_together = (('location', 'date_period'),)
@@ -70,7 +72,9 @@ class Course(models.Model):
     gen_eds = models.ManyToManyField('GenEd', related_name='courses')
     desc = models.TextField(null=True)
     prereq_text = models.TextField(null=True)
+
     fee = models.FloatField(default=0.0)
+    fee_per_credit = models.BooleanField(default=False)
     notes = models.ManyToManyField('Note', related_name='courses')
     web_resources = models.ManyToManyField('WebResource', related_name='courses')
     objects = managers.CourseManager()
@@ -83,8 +87,10 @@ class Course(models.Model):
 
 
     def update_course(self, **kwargs):
-        no_simple_update = ['evals', 'subject_id', 'subject', 'title', 'number', 'gen_eds', 'subject']
-        simple_fields = [field for field in self._meta.get_all_field_names() if field not in no_simple_update]
+
+        print kwargs
+
+        simple_fields = ['min_credits', 'max_credits','desc','fee', 'fee_per_credit', 'prereq_text']
         simple_fields_changed = db_common_ops.update_simple_fields(self, simple_fields, **kwargs)
         m2m_fields_changed = db_common_ops.update_m2m(self.gen_eds, GenEd, 'code', kwargs.get('gen_eds', []))
         m2m_fields_changed += db_common_ops.update_m2m(self.web_resources, WebResource, ['link_text', 'link_url'],
@@ -92,14 +98,6 @@ class Course(models.Model):
         m2m_fields_changed += db_common_ops.update_m2m(self.notes, Note, 'code', kwargs.get('notes', []))
         if m2m_fields_changed + simple_fields_changed:
             self.save()
-
-
-class BaseOfferingInfo(models.Model):
-    crn = models.IntegerField(unique=True, primary_key=True)
-    meetings = models.ForeignKey(Meeting)
-
-    class Meta:
-        abstract = True
 
 
 class Term(models.Model):
@@ -110,22 +108,36 @@ class Term(models.Model):
         unique_together = ('season', 'year')
 
 
+
+class BaseOfferingInfo(models.Model):
+    crn = models.IntegerField(unique=True, primary_key=True)
+    meetings = models.ManyToManyField(Meeting)
+    open_seats = models.IntegerField()
+    total_seats = models.IntegerField()
+    class Meta:
+        abstract = True
+
+
 class Offering(BaseOfferingInfo):
     instructors = models.ManyToManyField(Instructor, related_name='offerings')
     course = models.ForeignKey(Course)
     objects = managers.OfferingManager()
+    term = models.ForeignKey(Term,related_name='offerings')
+
 
 
     def __unicode__(self):
-        return "Offering {} taught by {} {} meeting: {}".format(self.course, self.instructor, self.meeting)
+        return "Offering of {} {}".format(self.course.subject.code, self.course.number)
 
 
 class AssociatedSection(BaseOfferingInfo):
     instructors = models.ManyToManyField(Instructor, related_name='associated_sections')
     offering = models.ForeignKey(Offering)
+    term = models.ForeignKey(Term, related_name='associated_sections')
+    objects = managers.AssociatedSectionManager()
 
     def __unicode__(self):
-        return ' Associated Section of {} taught by {} on {}'.format(self.offering, self.instructor, self.meeting)
+        return ' Associated Section of {}'.format(self.offering)
 
 
 class Evaluation(models.Model):
