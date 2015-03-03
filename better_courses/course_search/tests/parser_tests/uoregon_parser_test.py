@@ -1,8 +1,8 @@
-from better_register.course_search.parsers.uoregon import offering_page_parser as uo
-
 __author__ = 'tanner'
 import unittest
+import datetime
 from bs4 import BeautifulSoup
+import course_search.parsers.uoregon.offering_page_parser as uo
 
 
 class UO_Parse_Test(unittest.TestCase):
@@ -89,12 +89,13 @@ class UO_Parse_Test(unittest.TestCase):
         self.assertEqual([self.title_text, self.credit_text], result)
 
     def test_get_credits(self):
-        result = uo.get_credits(self.credit_text)
-        self.assertEqual(4.00, result)
+        result = uo.parse_credits(self.credit_text)
+        correct_result = dict(min_credits=4.0, max_credits=4.0)
+        self.assertItemsEqual(correct_result, result)
 
     def test_parse_title(self):
         result = uo.parse_title(self.title_text)
-        correct_result = dict(subject=u'CIS', number=210, title=u'Computer Science I',gen_eds=['>4'])
+        correct_result = dict(subject=u'CIS', number=210, title=u'Computer Science I', gen_eds=['>4'])
         self.assertEqual(correct_result, result)
 
     def test_no_course_fee(self):
@@ -108,9 +109,9 @@ class UO_Parse_Test(unittest.TestCase):
 
     @unittest.skip('Skipping until re-implement parse_prereqs')
     def test_parse_prereq_and(self):
-         correct_result = [dict(code='PEO', number=285), dict(code='PEO', number=351)]
-         result = uo.get_prereqs(self.peo_class)
-         self.assertEqual(correct_result, result)
+        correct_result = [dict(code='PEO', number=285), dict(code='PEO', number=351)]
+        result = uo.get_prereqs(self.peo_class)
+        self.assertEqual(correct_result, result)
 
     def test_no_prereq(self):
         result = uo.get_prereqs(self.diff_days)
@@ -134,14 +135,15 @@ class UO_Parse_Test(unittest.TestCase):
             uo.parse_start_end(self.no_date)
 
     def test_parse_start_end_empty_string(self):
-         with self.assertRaises(AssertionError):
+        with self.assertRaises(AssertionError):
             uo.parse_start_end("")
 
     def test_parse_start_end_one_date(self):
         self.assertEqual(dict(start_date='10/1', end_date='10/1'), uo.parse_start_end('10/1'))
 
     def test_parse_days(self):
-        correct_result = [dict(weekday='m', start_date=None, end_date=None), dict(weekday='w', start_date=None, end_date=None )]
+        correct_result = [dict(weekday='m', start_date=None, end_date=None),
+                          dict(weekday='w', start_date=None, end_date=None)]
         self.assertItemsEqual(correct_result, uo.parse_days(self.no_date))
 
     def test_parse_days_date(self):
@@ -153,6 +155,20 @@ class UO_Parse_Test(unittest.TestCase):
     def test_get_course_fee(self):
         result = uo.get_course_fee(self.peo_class)
         self.assertEqual(205.00, result)
+
+
+    def test_parse_meetings(self):
+        day_str = 'mw'
+        time_str = '1600-1650'
+        location_str = 'MCK 201'
+
+        correct_result =[ {'date_period': {'start': 1600, 'end': 1650, 'start_date': None, 'end_date': None, 'weekday': 'm'},
+          'location': {'building': 'MCK', 'room': '201'}},
+         {'date_period': {'start': 1600, 'end': 1650, 'start_date': None, 'end_date': None, 'weekday': 'w'},
+          'location': {'building': 'MCK', 'room': '201'}}]
+
+        result = uo.parse_meetings(day_str, time_str, location_str)
+        self.assertItemsEqual(correct_result, result)
 
     def test_get_web_resources(self):
         correct_result = [
@@ -177,6 +193,7 @@ class UO_Parse_Test(unittest.TestCase):
         )
         result = uo.parse_note(self.note_img_tag)
 
+
     def test_get_notes(self):
         correct_result = [
             dict(code='b', desc='Course articles and information available on course website'),
@@ -200,7 +217,42 @@ class UO_Parse_Test(unittest.TestCase):
         result = uo.get_course_description(self.course_soup)
         self.assertEqual(correct_result, result)
 
+    def test_convert_meeting_to_date(self):
+        test_meetings = [ {'date_period': {'start': 1600, 'end': 1650, 'start_date':'10/1', 'end_date': '10/6', 'weekday': 'm'},
+          'location': {'building': 'MCK', 'room': '201'}},
+         {'date_period': {'start': 1600, 'end': 1650, 'start_date': '10/1', 'end_date':'10/6', 'weekday': 'w'},
+          'location': {'building': 'MCK', 'room': '201'}}]
+        year = 2015
+        start_date = datetime.datetime(year,10,1).date()
+        end_date = datetime.datetime(year, 10,6).date()
 
+        correct_ouput = [ {'date_period': {'start': 1600, 'end': 1650, 'start_date': start_date, 'end_date': end_date, 'weekday': 'm'},
+          'location': {'building': 'MCK', 'room': '201'}},
+         {'date_period': {'start': 1600, 'end': 1650, 'start_date': start_date, 'end_date': end_date, 'weekday': 'w'},
+          'location': {'building': 'MCK', 'room': '201'}}]
+
+        self.assertEqual(correct_ouput,uo.convert_meeting_to_datetime(test_meetings,year))
+
+
+    def test_get_course(self):
+        correct_result = {'min_credits': 4.0,
+                          'max_credits':4.0,
+         'desc': u'Basic concepts and practices of computer science. Topics include algorithmic problem solving, '
+                 u'levels of abstraction, object-oriented design and programming, software organization, analysis of '
+                 u'algorithm and data structures. Sequence.',
+         'fee': 0.0,
+         'gen_eds': [u'>4'],
+         'notes': [{'code': u'A', 'desc': u'Mandatory Attendance'}],
+         'number': 210,
+         'subject': u'CIS',
+         'title': u'Computer Science I'}
+        self.assertItemsEqual(correct_result, uo.get_course(self.course_soup))
+
+
+    def test_credit_range(self):
+        test_text = '1.00-12.00'
+        correct_result = dict(min_credits=1.0,max_credits=12.0)
+        self.assertItemsEqual(correct_result,uo.parse_credits(test_text))
 
 
 
