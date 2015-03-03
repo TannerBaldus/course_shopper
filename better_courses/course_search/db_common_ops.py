@@ -39,9 +39,9 @@ def _filter_models_by_pk(models, pk_fields, good_pk_values_lst):
     """
 
     bad_pk_values = []
-    bad_models =[]
+    bad_models = []
     for model in models:
-        pk_values = _get_pk_fields(model,pk_fields)
+        pk_values = _get_pk_fields(model, pk_fields)
         if pk_values not in good_pk_values_lst:
             bad_pk_values.append(pk_values)
             bad_models += model
@@ -92,6 +92,15 @@ def update_m2m(m2m_field, model_cls, pk_field, model_kwargs_list):
     :param model_kwargs_list:
     :return: number of relationships changed
     """
+
+    if not model_kwargs_list:
+        relations_count = len(m2m_field.all())
+        if relations_count == 0:
+            return 0
+        else:
+            m2m_field.clear()
+            return relations_count
+
     new_models, old_models = _get_new_old(m2m_field.all(), model_cls,pk_field, model_kwargs_list)
 
     if not new_models and not old_models:
