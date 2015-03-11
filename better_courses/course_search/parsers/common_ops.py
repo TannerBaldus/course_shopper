@@ -2,6 +2,7 @@ __author__ = 'tanner'
 import string
 from bs4 import BeautifulSoup
 import requests
+
 def label_table_row_data(labels, table_row, text=True):
     """
     Creates a dict of labels mapped to text in table data tags contained in a table row tag.
@@ -43,16 +44,19 @@ def get_labels_from_header(rows, to_lower):
     :param to_lower: a boolean indicating if the header text should be lower case
     :return: a list of text contained in the th tags, list of rows without header row.
     """
-    make_lower = lambda in_str: in_str.lower if to_lower else in_str
+    make_lower = lambda in_str: in_str.lower() if to_lower else in_str
     headers = rows[0].find_all('th')
-    assert(headers, 'no header data found in first row.')
+    assert headers, 'no header data found in first row.'
     labels = [make_lower(header.text.strip()) for header in headers]
     return labels, rows[1:]
 
 
-def get_labeled_rows(table, labels=[], to_lower=True):
+def labeled_rows_from_list(lst, labels):
+    return (label_table_row_data(labels, row) for row in lst)
+
+def labeled_rows_from_table(table, labels=[], to_lower=True):
     """
-    Takes a beautfiulsoup table tag and returns a list of dictonaries mapping the text from td tags to labels from each
+    Takes a BeautfiulSoup table tag and returns a list of dictonaries mapping the text from td tags to labels from each
     row. These labels can be provided as an argument, if no labels are given the function will try and get labels from
     th tags in the first row. When providing labels as an argument the order should correspond to the order of
     columns from left to right. Change to_lower to be false if when getting labels from the header when we want
@@ -63,6 +67,9 @@ def get_labeled_rows(table, labels=[], to_lower=True):
     :param to_lower: a boolean indicating if the header text should be lower case default true
     :return: a list of dicts mapping the text from td tags to labels
     """
+    if type(table) == list:
+        raise ValueError('table must be a BeautifulSoup obj. For lists of rows use labeled_rows_from_list.')
+
     rows = table.find_all('tr')
     assert len(rows) != 0, "There are no rows in this table: {}".format(rows)
     if not labels:
@@ -86,3 +93,35 @@ def url_to_soup(url):
     :return: a beautiful soup object of the webpage
     """
     return BeautifulSoup(requests.get(url).text)
+
+def parse_name(full_name):
+    """
+    Takes a name and puts it into a dict of fname, middle, lname. If there are more than 3 words in the name, we take
+    every word (delimited by spaces) between the middle and the last as the middle name.
+
+    parse_name('Frank Underwood')
+    >> {fname:Frank, middle:None, lname=Underwood}
+
+    parse_name('Francis Joseph Underwood')
+    >> {fname:Francis middle:Joseph lname: Underwood}
+
+    parse_name('Hector Lombard Mendoza Perez')
+    >> {fname:Hector, middle: Lombard Mendoza, lname: Perez}
+
+    :param full_name: a string of a name
+    :return: a dict of mapping fname, middle, lname to values
+    """
+    full_name = full_name.split(' ')
+
+    if len(full_name) > 3:
+        fname, lname = full_name[0], full_name[-1]
+        middle = ' '.join(full_name[1:-1])
+
+    elif len(full_name) == 3:
+        fname, middle, lname = full_name
+
+    else:
+        fname, lname = full_name
+        middle = None
+
+    return dict(fname=fname, middle=middle, lname=lname)
