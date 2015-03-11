@@ -44,7 +44,7 @@ def _filter_models_by_pk(models, pk_fields, good_pk_values_lst):
         pk_values = _get_pk_fields(model, pk_fields)
         if pk_values not in good_pk_values_lst:
             bad_pk_values.append(pk_values)
-            bad_models += model
+            bad_models.append(model)
 
     return bad_pk_values, bad_models
 
