@@ -1,10 +1,12 @@
 __author__ = 'tanner'
 from logged_in_session import LoggedInSession
+from bs4 import  BeautifulSoup
 
 class DuckwebSession(LoggedInSession):
 
-    def __init__(self, login_url, username, pwd):
-        super(DuckwebSession, self).__init__(login_url, username, pwd)
+    def __init__(self, username, pwd):
+        duckweb_url = 'https://duckweb.uoregon.edu/pls/prod/twbkwbis.P_WWWLogin'
+        super(DuckwebSession, self).__init__(duckweb_url, username, pwd)
 
 
     def find_username_element(self):
@@ -42,36 +44,54 @@ class DuckwebSession(LoggedInSession):
         self.new_tab('https://www.applyweb.com/eval/new/coursesearch')
 
     def instructor_option_values(self):
+        """
+        Each of the elements in the instructor selection box has a integer value. We put those values in a list
+        to be able to easily click those elements later.
+        :return:
+        """
         iframe = self.find_element_by_tag_name('iFrame')
         self.switch_to_frame(iframe)
-
         instructor_select = self.find_element_by_css_selector('[name="instructorSelect"]')
-        options = instructor_select.find_elements_by_tag_name('option')
-
-        for option in options:
-            yield option.get_attribute('value')
-
+        option_soup = self.tag_to_soup(instructor_select)
+        options = option_soup.find_all('option')
+        return [option['value'] for option in options if option['value'] > 0]
 
     def get_instructor_option(self, value):
         selector = "[value='{}']".format(value)
         return self.find_element_by_css_selector(selector)
 
 
-
-    def get_evals_results(self):
+    def select_instructor(self, instructor_option):
         """
+
+        :param instructor_value:
         :return:
         """
-        for value in self.instructor_option_values():
-            if int(value) > 0:
-                instructor_option = self.get_instructor_option(value)
-                evals = self.find_element_by_tag_name('tbody')
-                yield instructor_option.text, evals.get_attribute('innerHTML')
+        instructor_option.click()
 
+    def get_evals_table(self, instructor_value):
+        """
+
+
+        :return:
+        """
+        tbody_tags = self.find_elements_by_tag_name('tbody')
+        if len(tbody_tags) != 3:
+            return None
+        tbody = self.tag_to_soup(tbody_tags[2])
+        return tbody.find_all('tr', class_='even') + tbody.find_all('tr', class_='odd')
 
     def evals(self):
         self.go_to_course_evals()
-        return self.get_evals_results()
+        for value in self.instructor_option_values():
+
+            instructor_option = self.get_instructor_option(value)
+            instructor_name = instructor_option.text
+            instructor_option.click()
+            table = self.get_evals_table(value)
+
+            if table:
+                yield instructor_name, table
 
 
 

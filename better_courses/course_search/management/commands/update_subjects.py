@@ -11,4 +11,5 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         get_subject_fn = get_func_from_string(GET_SUBJECTS_FN)
         for subject_kwargs in get_subject_fn():
-            Subject.objects.create(**subject_kwargs)
+            print  subject_kwargs
+            Subject.objects.get_or_create_subject(**subject_kwargs)

@@ -80,19 +80,80 @@ class EvaluationManager(models.Manager):
     def by_score(self, score):
         return self.filter(score__gte=score)
 
+    def get_or_create_evaluation(self, instructor, term, course, responses, course_quality, teaching_quality,
+                                 organization, class_time_use, communication, grading_clarity, amount_learned):
+
+        from models import Instructor, Term, Course
+
+        instructor, instructor_created = Instructor.objects.update_or_create(**instructor)
+        course, course_created = Course.objects.get_or_create_course(**course)
+        term, term_created = Term.objects.get_or_create(**term)
+
+        if not (instructor_created or course_created or term_created):
+            try:
+                return self.get(term=term, course=course, instructor=instructor), False
+
+            except ObjectDoesNotExist:
+                pass
+
+        return self.create(instructor=instructor, course=course, term=term, responses=responses, course_quality=course_quality,
+                           organization=organization, class_time_use=class_time_use, communication=communication,
+                           grading_clarity=grading_clarity, amount_learned=amount_learned,
+                           teaching_quality=teaching_quality), True
 
 class InstructorManager(models.Manager):
+
     def get_queryset(self):
         return super(InstructorManager, self).get_queryset().select_related()
 
     def search_by_evaluation(self, rating, eval_rating_fn):
-        offering_pairs = filter(lambda i: i['avg_score'] >= rating, eval_rating_fupdaten())
+        offering_pairs = filter(lambda i: i['avg_score'] >= rating, eval_rating_fn)
         instructors = [i['instructor'] for i in offering_pairs]
         return self.filter(id__in=instructors)
 
+    @staticmethod
+    def middle_name_tiebreaker(middle, instructor_instance):
+        instructor_middle = instructor_instance.middle
+        instructor_middle_length = len(instructor_middle)
+        input_middle_length = len(middle)
+        equal = False
+
+        if instructor_middle is None:
+            equal = instructor_middle == middle
+
+        if instructor_middle_length != input_middle_length:
+            equal = False
+
+            if instructor_middle_length == 1:
+                equal = middle.startswith(instructor_middle)
+
+            elif input_middle_length == 1:
+                equal = instructor_middle.startswith(middle)
+
+        else:
+            equal = instructor_middle == middle
+
+        if equal:
+            return middle if input_middle_length >= instructor_middle_length else instructor_middle
+        return False
+
+    def update_or_create(self, fname, middle, lname, email=None):
+        results = self.filter(fname=fname, lname=lname)
+        results_count = results.count()
+        if results_count == 0:
+            return self.create(fname=fname, middle=middle, lname=lname), True
+
+        for result in results:
+            tiebreaker = self.middle_name_tiebreaker(middle, result)
+            if tiebreaker:
+                result.middle = tiebreaker
+                result.save()
+                return result, False
+
+        return self.create(fname=fname, middle=middle, lname=lname), True
+
 
 class CourseManager(models.Manager):
-
     def create_course(self, title, number, min_credits, max_credits, subject, web_resources=[], gen_eds=[], notes=[],
                       **kwargs):
         """
@@ -101,7 +162,7 @@ class CourseManager(models.Manager):
         """
         from models import Subject, Note, GenEd, WebResource
 
-        subject = Subject.objects.get_or_create(code=subject)[0]
+        subject = Subject.objects.get_or_create_subject(**subject)[0]
         course = self.create(title=title, number=number, min_credits=min_credits, max_credits=max_credits,
                              subject=subject, **kwargs)
 
@@ -112,13 +173,13 @@ class CourseManager(models.Manager):
                                                              web_resources)
         if new_m2m_relations:
             course.save()
+
         return course
 
-    def get_or_create_course(self, title, subject, number, min_credits, max_credits, defaults=None, **kwargs):
+    def get_or_create_course(self, title, subject, number, min_credits=0, max_credits=0, defaults=None, **kwargs):
         """
-        Tries to get a course instance based on the subject_code, number and title only.
-        If a course instance is found and a non blank description is given; the course
-        instance's description will be updated.
+        Tries to get a course instance based on the subject_code, number and title only. If
+        If a course instance is found and a non blank description is given;
         If no instance is found a new course instance is created.
 a
         :param title:
@@ -133,13 +194,20 @@ a
 
         try:
             course = self.get(title=title, subject__code=subject, number=number)
-            course.update_course(min_credits=min_credits, max_credits=max_credits, **kwargs)
             return course, False
 
         except ObjectDoesNotExist:
             course = self.create_course(title=title, subject=subject, number=number,
                                         min_credits=min_credits, max_credits=max_credits, **kwargs)
             return course, True
+
+    def update_or_create_course(self, title, subject, number, min_credits=0, max_credits=0, defaults=None, **kwargs):
+        course, created = self.get_or_create_course(title, subject, number, min_credits, max_credits,
+                                                    defaults=None, **kwargs)
+        if not created:
+            course.update_course(min_credits=min_credits, max_credits=max_credits, **kwargs)
+
+        return course, created
 
 
 class MeetingManager(models.Manager):
@@ -185,6 +253,37 @@ class AssociatedSectionManager(models.Manager):
             associated_section = self.create_associated_section(crn, offering, instructors=instructors,
                                                                 meetings=meetings, **kwargs)
             return associated_section, True
+
+
+class SubjectManager(models.Manager):
+
+    def find_by_subject_or_code(self, code, subject):
+
+        assert code or subject, "Need to have at least code or subject"
+
+        try:
+            if not code:
+                subject_model = self.get(subject=subject)
+            else:
+                subject_model = self.get(code=code)
+            return subject_model
+        except ObjectDoesNotExist:
+             return False
+
+    def get_or_create_subject(self, code, subject):
+        subject_model = self.find_by_subject_or_code(code, subject)
+        if subject_model:
+            return subject_model, False
+        return self.create(code=code, subject=subject), True
+
+    def update_or_create_subject(self, code, subject):
+        subject_model, created = self.get_or_create_subject(code, subject)
+        if not created:
+            subject_model.update(code, subject)
+
+
+
+
 
 
 
