@@ -10,7 +10,7 @@ def parse_subject_dropdown(soup):
     selection = soup.find(id='subj_id')
     options = selection.find_all('option')[1:]
     for option in options:
-        code, subject = option.text.strip().split('-')
+        code, subject = option.text.strip().split(' - ')
         yield dict(code=code.replace(' ', ''), subject=convert_and(subject).strip())
 
 
