@@ -94,7 +94,7 @@ USE_TZ = True
 
 GET_SUBJECTS_FN = 'course_search.parsers.uoregon.main.get_subjects'
 UPDATE_OFFERINGS_FN = 'course_search.parsers.uoregon.main.get_offerings'
-UPDATE_EVALS_FN ='course_search.parsers.uoregon.main.get_evals'
+UPDATE_EVALS_FN ='course_search.parsers.uoregon.main.update_evals'
 
 
 # Static files (CSS, JavaScript, Images)
