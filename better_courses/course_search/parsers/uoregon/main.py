@@ -1,8 +1,10 @@
 __author__ = 'tanner'
 from search_page_parser import parse_results
 from course_search.models import Subject
-from subject_codes import parse_subject_table
+from subject_codes import parse_subject_dropdown
+from evals_parser import parse_eval
 from ..common_ops import url_to_soup
+from course_search.logged_in_sessions.duckweb_session import DuckwebSession
 
 
 
@@ -17,7 +19,7 @@ offering_page_base = 'http://classes.uoregon.edu/pls/prod/hwskdhnt.p_viewdetl?te
 offering_page_suffix = '&crn={}'
 
 
-subject_code_page = 'http://registrar.uoregon.edu/current-students/subject-codes'
+subject_code_page = 'http://classes.uoregon.edu/pls/prod/hwskdhnt.p_search?term=201402'
 
 
 def convert_to_term_number(season, year):
@@ -51,17 +53,15 @@ def convert_to_term_number(season, year):
 def get_subjects():
     """
 
-
-
     :return:
     """
 
     soup = url_to_soup(subject_code_page)
-    return parse_subject_table(soup)
+    return parse_subject_dropdown(soup)
 
 
 
-def get_offerings(season, year):
+def get_offerings(season, year, subject_codes):
     """
 
     :param season:
@@ -69,7 +69,6 @@ def get_offerings(season, year):
     :return:
     """
     term = convert_to_term_number(season, year)
-    subject_codes = [s.code for s in Subject.objects.all()]
     term_search_url = lambda term, code: course_search_url.format(term, code)
     offering_page_url = offering_page_base.format(term)+offering_page_suffix
 
@@ -77,10 +76,16 @@ def get_offerings(season, year):
         print code
         search_url = term_search_url(term,code)
         for result in parse_results(term_search_url(term, code), offering_page_url):
-            print 'result'
+            print result
             yield result
 
 
+def update_evals(username, password):
+    d = DuckwebSession(username, password)
+
+    for instructor_name, eval_rows in d.evals():
+        for result in parse_eval(instructor_name, eval_rows):
+            yield result
 
 
 
