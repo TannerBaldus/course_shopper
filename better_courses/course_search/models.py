@@ -5,13 +5,13 @@ import db_common_ops
 
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
-    middle = models.CharField(max_length=256, null=True)
+    middle = models.CharField(max_length=256, null=True, default='')
     lname = models.CharField(max_length=256)
     email = models.EmailField(null=True)
     objects = managers.InstructorManager()
 
     def __unicode__(self):
-        return "{} {}".format(self.fname, self.lname)
+        return u"{} {} {}".format(self.fname, self.middle, self.lname)
 
 
 class Location(models.Model):
@@ -22,7 +22,7 @@ class Location(models.Model):
         unique_together = (('building', 'room'),)
 
     def __unicode__(self):
-        return '{} {}'.format(self.building, self.room)
+        return u'{} {}'.format(self.building, self.room)
 
 
 class DatePeriod(models.Model):
@@ -51,23 +51,32 @@ class Meeting(models.Model):
         unique_together = (('location', 'date_period'),)
 
     def __unicode__(self):
-        return 'Course Meeting at {} on {}'.format(self.location, self.date_period)
+        return u'Course Meeting at {} on {}'.format(self.location, self.date_period)
 
 
 class Subject(models.Model):
     code = models.CharField(max_length=8, unique=True, primary_key=True)
     subject = models.CharField(max_length=256)
+    objects = managers.SubjectManager()
+
+
+    def update_subject(self, subject):
+        print(subject)
+        if db_common_ops.update_simple_fields(self, ['subject'], subject=subject):
+            self.save()
+
+
 
     def __unicode__(self):
-        return "code: {} subject name:{}".format(self.code, self.subject)
+        return u"code: {} subject name:{}".format(self.code, self.subject)
 
 
 class Course(models.Model):
     title = models.TextField()
-    number = models.IntegerField()
+    number = models.CharField(max_length=8)  # char field because some course numbers have letters e.g. 463M,  yeah it's dumb.
     subject = models.ForeignKey(Subject)
-    min_credits = models.FloatField()
-    max_credits = models.FloatField()
+    min_credits = models.FloatField(default=0.0)
+    max_credits = models.FloatField(default=0.0)
 
     gen_eds = models.ManyToManyField('GenEd', related_name='courses')
     desc = models.TextField(null=True)
@@ -90,7 +99,7 @@ class Course(models.Model):
 
         print kwargs
 
-        simple_fields = ['min_credits', 'max_credits','desc','fee', 'fee_per_credit', 'prereq_text']
+        simple_fields = ['min_credits', 'max_credits', 'desc', 'fee', 'fee_per_credit', 'prereq_text']
         simple_fields_changed = db_common_ops.update_simple_fields(self, simple_fields, **kwargs)
         m2m_fields_changed = db_common_ops.update_m2m(self.gen_eds, GenEd, 'code', kwargs.get('gen_eds', []))
         m2m_fields_changed += db_common_ops.update_m2m(self.web_resources, WebResource, ['link_text', 'link_url'],
@@ -101,6 +110,7 @@ class Course(models.Model):
 
 
 class Term(models.Model):
+
     season = models.CharField(max_length=7)
     year = models.IntegerField()
 
@@ -114,8 +124,14 @@ class BaseOfferingInfo(models.Model):
     meetings = models.ManyToManyField(Meeting)
     open_seats = models.IntegerField()
     total_seats = models.IntegerField()
+
     class Meta:
         abstract = True
+
+    def update_seats(self, open_seats, total_seats):
+        self.open_seats = open_seats
+        self.total_seats = total_seats
+        self.save()
 
 
 class Offering(BaseOfferingInfo):
@@ -127,7 +143,7 @@ class Offering(BaseOfferingInfo):
 
 
     def __unicode__(self):
-        return "Offering of {} {}".format(self.course.subject.code, self.course.number)
+        return u"Offering of {} {}".format(self.course.subject.code, self.course.number)
 
 
 class AssociatedSection(BaseOfferingInfo):
@@ -136,7 +152,7 @@ class AssociatedSection(BaseOfferingInfo):
     objects = managers.AssociatedSectionManager()
 
     def __unicode__(self):
-        return ' Associated Section of {}'.format(self.offering)
+        return u'Associated Section of {}'.format(self.offering)
 
 
 class Evaluation(models.Model):
@@ -156,8 +172,8 @@ class Evaluation(models.Model):
     objects = managers.EvaluationManager()
 
     def __unicode__(self):
-        return "{} {} taught by {} {} score: {}".format(self.course.subject.code, self.course.number,
-                                                        self.instructor.fname, self.instructor.lname, self.score)
+        return u"{} {} taught by {} {}".format(self.course.subject.code, self.course.number,
+                                                        self.instructor.fname, self.instructor.lname)
 
 
 class WebResource(models.Model):
