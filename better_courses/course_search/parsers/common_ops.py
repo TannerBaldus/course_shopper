@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from parser_error import ParserError
 import requests
 
-def label_table_row_data(labels, table_row, text):
+def label_table_row_data(labels, table_row, text=True):
     """
     Creates a dict of labels mapped to text in table data tags contained in a table row tag.
     The order of the labels corresponds to the order of the table data tags. If text is False the mapping will
@@ -90,6 +90,7 @@ def labeled_rows_from_table(table, labels=[], text=True, to_lower=True):
 
     if not labels:
         labels, rows = get_labels_from_header(rows, to_lower)
+
     labeled_rows = (label_table_row_data(labels, row, text) for row in rows)
     return labeled_rows
 

@@ -1,6 +1,6 @@
 __author__ = 'tanner'
 
-from ..common_ops import label_table_row_data, parse_name
+from ..common_ops import parse_name, label_table_row_data
 from datetime import datetime
 from  string import maketrans
 import string
@@ -191,8 +191,9 @@ def parse_vitals(table_row):
     :return: A dictionary with the above titles as keys and the
     text from the <TD> as the values
     """
+    
     labels = ['class_type', 'crn', 'open_seats', 'total_seats', 'time', 'day', 'location', 'instructor', 'notes']
-    label_mapping = label_table_row_data(labels, table_row)
+    label_mapping = label_table_row_data(labels,table_row)
 
     label_mapping.update(total_seats=int(label_mapping['total_seats']), open_seats=int(label_mapping['open_seats']),
                          meetings=parse_meetings(label_mapping['time'], label_mapping['day'],
