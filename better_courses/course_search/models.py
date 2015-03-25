@@ -2,14 +2,16 @@ from django.db import models
 import managers
 import db_common_ops
 
+
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
-    middle = models.CharField(max_length=256)
+    middle = models.CharField(max_length=256, null=True, default='')
     lname = models.CharField(max_length=256)
+    email = models.EmailField(null=True)
     objects = managers.InstructorManager()
 
     def __unicode__(self):
-        return "{} {}".format(self.fname, self.lname)
+        return u"{} {} {}".format(self.fname, self.middle, self.lname)
 
 
 class Location(models.Model):
@@ -20,55 +22,71 @@ class Location(models.Model):
         unique_together = (('building', 'room'),)
 
     def __unicode__(self):
-        return '{} {}'.format(self.building,self.room)
+        return u'{} {}'.format(self.building, self.room)
 
 
 class DatePeriod(models.Model):
-    day = models.CharField(max_length=1)
+    day = models.CharField(max_length=3)
     start_time = models.IntegerField()
     end_time = models.IntegerField()
     start_date = models.DateField(null=True)
-    end_date= models.DateField(null=True)
+    end_date = models.DateField(null=True)
 
     class meta:
-        unique_together = (('day', 'start_time','end_time', 'start_date', 'end_date'),)
+        unique_together = (('day', 'start_time', 'end_time', 'start_date', 'end_date'),)
 
     def __unicode__(self):
-        message =  "{} {}-{}".format(self.day, self.start_time, self.end_time)
+        message = "{} {}-{}".format(self.day, self.start_time, self.end_time)
         if self.calendar_day:
             message += " on {}".format(self.calendar_day)
         return message
 
 
-
 class Meeting(models.Model):
     location = models.ForeignKey(Location)
     date_period = models.ForeignKey(DatePeriod)
+    objects = managers.MeetingManager()
 
     class meta:
-        unique_together = (('location','date_period'),)
+        unique_together = (('location', 'date_period'),)
 
     def __unicode__(self):
-        return 'Course Meeting at {} on {}'.format(self.location, self.date_period)
+        return u'Course Meeting at {} on {}'.format(self.location, self.date_period)
 
 
 class Subject(models.Model):
     code = models.CharField(max_length=8, unique=True, primary_key=True)
     subject = models.CharField(max_length=256)
+    objects = managers.SubjectManager()
+
+
+    def update_subject(self, subject):
+        print(subject)
+        if db_common_ops.update_simple_fields(self, ['subject'], subject=subject):
+            self.save()
+
+
 
     def __unicode__(self):
-        return "{}:{}".format(self.code, self.subject)
+        return u"code: {} subject name:{}".format(self.code, self.subject)
 
 
 class Course(models.Model):
     title = models.TextField()
-    number = models.IntegerField()
+    number = models.CharField(max_length=8)  # char field because some course numbers have letters e.g. 463M,  yeah it's dumb.
     subject = models.ForeignKey(Subject)
-    credits = models.IntegerField()
-    geneds = models.ManyToManyField('GenEd', related_name='courses')
+    min_credits = models.FloatField(default=0.0)
+    max_credits = models.FloatField(default=0.0)
+
+    gen_eds = models.ManyToManyField('GenEd', related_name='courses')
     desc = models.TextField(null=True)
     prereq_text = models.TextField(null=True)
+
     fee = models.FloatField(default=0.0)
+    fee_per_credit = models.BooleanField(default=False)
+    notes = models.ManyToManyField('Note', related_name='courses')
+    web_resources = models.ManyToManyField('WebResource', related_name='courses')
+    objects = managers.CourseManager()
 
     class meta:
         unique_together = ('title', 'number', 'subject')
@@ -77,68 +95,22 @@ class Course(models.Model):
         return "{} {} {}".format(self.subject.code, self.number, self.title)
 
 
-
-    def update_gends(self, gen_ed_list):
-
-        old_gen_eds = {i.code: i for i in self.geneds.all() if i.code not in gen_ed_list}
-
-        if not gen_ed_list and self.geneds.all():
-            self.geneds.clear()
-            return 1
-
-        else:
-            new_gen_eds = 0
-            updated_gen_eds = []
-
-            for gen_ed_dict in gen_ed_list:
-
-                if gen_ed_dict.get('code') not in old_gen_eds:
-                    gen_ed = GenEd.objects.get_or_create(**gen_ed_dict)
-                    updated_gen_eds.append(gen_ed)
-                    new_gen_eds += 1
-
-            if new_gen_eds > 0:
-                self.geneds.remove(*old_gen_eds.values())
-                self.geneds.add(*updated_gen_eds)
-
-            return new_gen_eds
-
     def update_course(self, **kwargs):
-        no_update = ['evals', 'subject_id', 'subject', 'title', 'number']
-        m2m_relations =['geneds']
-        foreign_keys = ['subject']
 
-        is_simple_field = lambda field: field not in(m2m_relations+no_update+foreign_keys)
-        simple_fields = [field for field in self._meta.get_all_field_names() if is_simple_field(field)]
+        print kwargs
 
+        simple_fields = ['min_credits', 'max_credits', 'desc', 'fee', 'fee_per_credit', 'prereq_text']
         simple_fields_changed = db_common_ops.update_simple_fields(self, simple_fields, **kwargs)
-        new_geneds, old_geneds =  db_common_ops.get_new_old(self.geneds,GenEd,'code', kwargs['geneds'])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class BaseOfferingInfo(models.Model):
-
-    crn = models.IntegerField(unique=True, primary_key=True)
-    meetings = models.ForeignKey(Meeting)
-
-    class Meta:
-        abstract = True
+        m2m_fields_changed = db_common_ops.update_m2m(self.gen_eds, GenEd, 'code', kwargs.get('gen_eds', []))
+        m2m_fields_changed += db_common_ops.update_m2m(self.web_resources, WebResource, ['link_text', 'link_url'],
+                                                       kwargs.get('web_resources', []))
+        m2m_fields_changed += db_common_ops.update_m2m(self.notes, Note, 'code', kwargs.get('notes', []))
+        if m2m_fields_changed + simple_fields_changed:
+            self.save()
 
 
 class Term(models.Model):
+
     season = models.CharField(max_length=7)
     year = models.IntegerField()
 
@@ -146,28 +118,44 @@ class Term(models.Model):
         unique_together = ('season', 'year')
 
 
+
+class BaseOfferingInfo(models.Model):
+    crn = models.IntegerField(unique=True, primary_key=True)
+    meetings = models.ManyToManyField(Meeting)
+    open_seats = models.IntegerField()
+    total_seats = models.IntegerField()
+
+    class Meta:
+        abstract = True
+
+    def update_seats(self, open_seats, total_seats):
+        self.open_seats = open_seats
+        self.total_seats = total_seats
+        self.save()
+
+
 class Offering(BaseOfferingInfo):
     instructors = models.ManyToManyField(Instructor, related_name='offerings')
     course = models.ForeignKey(Course)
-    start = models.DateField(null=True)
-    end = models.DateField(null=True)
     objects = managers.OfferingManager()
+    term = models.ForeignKey(Term, related_name='offerings')
+
 
 
     def __unicode__(self):
-        return "Offering {} taught by {} {} meeting: {}".format(self.course, self.instructor, self.meeting)
+        return u"Offering of {} {}".format(self.course.subject.code, self.course.number)
 
 
 class AssociatedSection(BaseOfferingInfo):
-    instructor = models.ManyToManyField(Instructor, related_name='associated_sections')
+    instructors = models.ManyToManyField(Instructor, related_name='associated_sections')
     offering = models.ForeignKey(Offering)
+    objects = managers.AssociatedSectionManager()
 
     def __unicode__(self):
-        return ' Associated Section of {} taught by {} on {}'.format(self.offering, self.instructor, self.meeting)
+        return u'Associated Section of {}'.format(self.offering)
 
 
 class Evaluation(models.Model):
-
     instructor = models.ForeignKey(Instructor, related_name='evals')
     course = models.ForeignKey(Course, related_name='evals')
     term = models.ForeignKey(Term, related_name='evals')
@@ -184,17 +172,19 @@ class Evaluation(models.Model):
     objects = managers.EvaluationManager()
 
     def __unicode__(self):
-        return "{} {} taught by {} {} score: {}".format(self.course.subject.code, self.course.number,
-                                                        self.instructor.fname, self.instructor.lname, self.score)
+        return u"{} {} taught by {} {}".format(self.course.subject.code, self.course.number,
+                                                        self.instructor.fname, self.instructor.lname)
 
 
 class WebResource(models.Model):
     link_text = models.TextField()
     link_url = models.TextField()
 
+
 class Note(models.Model):
     code = models.TextField()
     desc = models.TextField()
+
 
 class GenEd(models.Model):
     code = models.CharField(max_length=6)

@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import sys
 
 PROJECT_PATH = os.path.realpath(os.path.dirname(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -41,6 +42,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'course_search',
+    'django_nose',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -52,11 +54,11 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 
+ROOT_URLCONF = 'better_courses.urls'
 
-ROOT_URLCONF = 'better_register.urls'
-
-WSGI_APPLICATION = 'better_register.wsgi.application'
+WSGI_APPLICATION = 'better_courses.wsgi.application'
 
 
 
@@ -74,6 +76,8 @@ DATABASES = {
     }
 }
 
+if 'test' in sys.argv or 'test_coverage' in sys.argv: #Covers regular testing and django-coverage
+    DATABASES['default']['engine'] = 'sqlite3'
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
@@ -86,6 +90,11 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+
+GET_SUBJECTS_FN = 'course_search.parsers.uoregon.main.get_subjects'
+UPDATE_OFFERINGS_FN = 'course_search.parsers.uoregon.main.get_offerings'
+UPDATE_EVALS_FN ='course_search.parsers.uoregon.main.update_evals'
 
 
 # Static files (CSS, JavaScript, Images)
