@@ -1,5 +1,6 @@
 __author__ = 'tanner'
 import unittest
+import json
 import datetime
 from bs4 import BeautifulSoup
 import course_search.parsers.uoregon.offering_page_parser as uo
@@ -9,7 +10,8 @@ class UO_Parse_Test(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # ## Course Pages
-        cls.course_soup = BeautifulSoup(open('test_data/uoregon_class.html'))
+        cls.cs210_soup = BeautifulSoup(open('test_data/uoregon_class.html'))
+        cls.cs210_data = json.load(open('test_data/cs210_course_data.json'))
         cls.vitals_soup = BeautifulSoup(open('test_data/vitals.html')).find('tr')
         cls.diff_days = BeautifulSoup(open('test_data/diff_days.html'))
 
@@ -42,7 +44,7 @@ class UO_Parse_Test(unittest.TestCase):
 
     def test_parse_instructor(self):
         correct_result = dict(fname='Michal', middle='T', lname='Young', email="michal@uoregon.edu")
-        result = uo.get_instructors(self.course_soup)
+        result = uo.get_instructors(self.cs210_soup)
         self.assertEqual(correct_result, result[0])
 
     def test_multiple_instructor(self):
@@ -73,7 +75,7 @@ class UO_Parse_Test(unittest.TestCase):
     def test_parse_course_code(self):
         test_text = 'Prereq: programming experience and MATH 112.'
         result = uo.parse_course_code(test_text)
-        correct_result = [dict(subject__code='MATH', number='112')]
+        correct_result = [dict(subject=dict(code='MATH', subject=''), number='112')]
         self.assertEqual(correct_result, result)
 
     def test_remove_nbsp(self):
@@ -83,12 +85,12 @@ class UO_Parse_Test(unittest.TestCase):
         self.assertEqual(correct_result, result)
 
     def test_get_term(self):
-        result = uo.get_term(self.course_soup)
+        result = uo.get_term(self.cs210_soup)
         correct_result = dict(season=u'Fall', year=2014)
         self.assertEqual(correct_result, result)
 
     def test_get_title_credit_text(self):
-        result = uo.get_title_credit_text(self.course_soup)
+        result = uo.get_title_credit_text(self.cs210_soup)
         self.assertEqual([self.title_text, self.credit_text], result)
 
     def test_get_credits(self):
@@ -98,17 +100,18 @@ class UO_Parse_Test(unittest.TestCase):
 
     def test_parse_title(self):
         result = uo.parse_title_text(self.title_text)
-        correct_result = dict(subject=u'CIS', number='210', title=u'Computer Science I', gen_eds=[dict(code='>4')])
+        correct_result = dict(subject=dict(code='CIS', subject=''), number='210', title=u'Computer Science I',
+                              gen_eds=[dict(code='>4')])
         self.assertEqual(correct_result, result)
 
     def test_no_course_fee(self):
-        result = uo.get_course_fee(self.course_soup)
+        result = uo.get_course_fee(self.cs210_soup)
         correct_result = dict(fee=0.0, fee_per_credit=False)
         self.assertEqual(correct_result, result)
 
     def test_get_prereq(self):
         correct_result = u'programming experience and MATH 112.'
-        result = uo.get_prereqs(self.course_soup)
+        result = uo.get_prereqs(self.cs210_soup)
         self.assertEqual(correct_result, result)
 
     @unittest.skip('Skipping until re-implement parse_prereqs')
@@ -221,17 +224,19 @@ class UO_Parse_Test(unittest.TestCase):
                           ', levels of abstraction, object-oriented design and programming, software organization, '
                           'analysis of algorithm and data structures. Sequence.')
 
-        result = uo.get_course_description(self.course_soup)
+        result = uo.get_course_description(self.cs210_soup)
         self.assertEqual(correct_result, result)
 
     def test_convert_meeting_to_date(self):
         test_meetings = [
             {
-            'date_period': {'start_time': 1600, 'end_time': 1650, 'start_date': '10/1', 'end_date': '10/6', 'day': 'm'},
-            'location': {'building': 'MCK', 'room': '201'}},
+                'date_period': {'start_time': 1600, 'end_time': 1650, 'start_date': '10/1', 'end_date': '10/6',
+                                'day': 'm'},
+                'location': {'building': 'MCK', 'room': '201'}},
             {
-            'date_period': {'start_time': 1600, 'end_time': 1650, 'start_date': '10/1', 'end_date': '10/6', 'day': 'w'},
-            'location': {'building': 'MCK', 'room': '201'}}]
+                'date_period': {'start_time': 1600, 'end_time': 1650, 'start_date': '10/1', 'end_date': '10/6',
+                                'day': 'w'},
+                'location': {'building': 'MCK', 'room': '201'}}]
         year = 2015
         start_date = datetime.datetime(year, 10, 1).date()
         end_date = datetime.datetime(year, 10, 6).date()
@@ -248,19 +253,7 @@ class UO_Parse_Test(unittest.TestCase):
 
 
     def test_get_course(self):
-        correct_result = {'min_credits': 4.0,
-                          'max_credits': 4.0,
-                          'desc': u'Basic concepts and practices of computer science. Topics include algorithmic problem solving, '
-                                  u'levels of abstraction, object-oriented design and programming, software organization, analysis of '
-                                  u'algorithm and data structures. Sequence.',
-                          'fee': 0.0,
-                          'fee_per_credit': False,
-                          'gen_eds': [u'>4'],
-                          'notes': [{'code': u'A', 'desc': u'Mandatory Attendance'}],
-                          'number': '210',
-                          'subject': u'CIS',
-                          'title': u'Computer Science I'}
-        self.assertItemsEqual(correct_result, uo.get_course(self.course_soup))
+        self.assertItemsEqual(self.cs210_data, uo.get_course(self.cs210_soup))
 
     def test_credit_range(self):
         test_text = '1.00-12.00'

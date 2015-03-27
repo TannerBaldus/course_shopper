@@ -262,7 +262,7 @@ def parse_course_code(text):
     > [('HIST',101), ('CIS',451)]
     """
     text = text.strip(string.punctuation).split(' ')
-    make_course = lambda subj, number: dict(subject__code=subj, number=number)
+    make_course = lambda subject_code, number: dict(subject=dict(subject='', code=subject_code), number=number)
     current_subject = ''
     courses = []
     for i in text:
@@ -407,7 +407,7 @@ def get_title_credit_text(soup):
     :rtype : list
     :param soup: beautifulsoup obj
     :return: (title_text, credit_text)
-    get_title_credit_text(course_soup)
+    get_title_credit_text(cs210_soup)
     >['CIS 210 Computer Science I >4', '4.00 cr.']
     """
     return [remove_nbsp(tag.text) for tag in soup.find(class_="datadisplaytable").find('tr').find_all('td')]
@@ -469,11 +469,11 @@ def parse_title_text(title_text):
     """
 
     title_lst = title_text.strip().split(' ')
-    subject, number = title_lst[0:2]
+    subject_code, number = title_lst[0:2]
     gen_ed_start = title_text.find('>')  # If there's a > in the title its a gen ed
     gen_eds = parse_gen_eds(title_lst)
     title = parse_course_title(title_text, number, gen_ed_start)
-    return dict(subject=subject, number=number, title=title, gen_eds=gen_eds)
+    return dict(subject=dict(code=subject_code, subject=''), number=number, title=title, gen_eds=gen_eds)
 
 
 def parse_course_fee(fee_text):

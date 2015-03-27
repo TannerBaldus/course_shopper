@@ -1,0 +1,17 @@
+{"min_credits": 4.0,
+                          "max_credits": 4.0,
+                          "desc": "Basic concepts and practices of computer science. Topics include algorithmic problem solving levels of abstraction, object-oriented design and programming, software organization, analysis of algorithm and data structures. Sequence.",
+                          "fee": 0.0,
+                          "fee_per_credit": false,
+                          "gen_eds": [">4"],
+                          "notes": [{"code": "A", "desc": "Mandatory Attendance"}],
+                          "number": "210",
+                          "subject": "CIS",
+                          "title": "Computer Science I",
+                          "web_resources" : [{"link_url": "http://www.cs.uoregon.edu/Classes/14F/cis210/index.php",
+                                              "link_text": "Class web site"},
+                                             {"link_url": "https://piazza.com/uoregon/fall2014/cis210/home",
+                                              "link_text": "Announcements and discussion"}],
+                          "prereq_text": "programming experience and MATH 112."
+}
+

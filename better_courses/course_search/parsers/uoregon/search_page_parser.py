@@ -30,7 +30,7 @@ def parse_results(results_url, detail_url):
     results_soup = url_to_soup(results_url)
     result_table = results_soup.find(class_='datadisplaytable')
 
-    is_good_row = lambda row: len(row.find_all('td', class_='dddefault')) > 8
+    is_good_row = lambda tag: len(tag.find_all('td', class_='dddefault')) > 8 and tag.name == 'tr'
     for tr in result_table.find_all(is_good_row):
         print 'row'
         result = parse_course_result(tr)
