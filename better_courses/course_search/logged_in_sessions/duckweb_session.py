@@ -75,20 +75,22 @@ class DuckwebSession(LoggedInSession):
 
         :return:
         """
-        tbody_tags = self.find_elements_by_tag_name('tbody')
+        soup = self.page_to_soup()
+        tbody_tags = soup.find_all('tbody')
         if len(tbody_tags) != 3:
             return None
-        tbody = self.tag_to_soup(tbody_tags[2])
+        tbody = tbody_tags[2]
         return tbody.find_all('tr', class_='even') + tbody.find_all('tr', class_='odd')
 
     def evals(self):
         self.go_to_course_evals()
         for value in self.instructor_option_values():
-
+            print 'ins value {}'.format(value)
             instructor_option = self.get_instructor_option(value)
             instructor_name = instructor_option.text
             instructor_option.click()
             table = self.get_evals_table(value)
+            print 'table\n{}'.format(table)
 
             if table:
                 yield instructor_name, table

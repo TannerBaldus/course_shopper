@@ -86,6 +86,12 @@ class LoggedInSession(webdriver.PhantomJS):
         return BeautifulSoup(html)
 
 
+    def page_to_soup(self):
+
+        """
+        Converts the current page source to a BeautifulSoup object
+        """
+        return BeautifulSoup(self.page_source)
 
 
 
