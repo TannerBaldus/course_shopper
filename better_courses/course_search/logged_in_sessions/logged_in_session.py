@@ -3,13 +3,13 @@ from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 __author__ = 'tanner'
 from pyvirtualdisplay import Display
-class LoggedInSession(webdriver.Firefox):
+
+class LoggedInSession(webdriver.PhantomJS):
 
 
-    def __init__(self, login_url, username, pwd, visible=0):
+    def __init__(self, login_url, username, pwd,):
         super(LoggedInSession, self).__init__()
-        display = Display(visible=0, size=(800, 600))
-        display.start()
+        self.set_window_size(1120, 550)
         self.login_url = login_url
         self._login(username, pwd)
 
