@@ -1,14 +1,16 @@
+from course_search.common_ops import db_common_ops
+
 __author__ = 'tanner'
 from django.db import models
-from django.db import connection
 from django.db.models import Avg
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
-import db_common_ops
+from course_search.common_ops import name_ops
 import operator
 
 
 class OfferingManager(models.Manager):
+
     def get_queryset(self):
         return super(OfferingManager, self).get_queryset().select_related()
 
@@ -49,7 +51,7 @@ class OfferingManager(models.Manager):
         :param meetings:
         :return:
         """
-        from models import Meeting, Course, Instructor, Term, WebResource
+        from models import Meeting, Course, Instructor, Term
 
         term = Term.objects.get_or_create(**term)[0]
         course = Course.objects.get_or_create_course(**course)[0]
@@ -111,31 +113,6 @@ class InstructorManager(models.Manager):
         instructors = [i['instructor'] for i in offering_pairs]
         return self.filter(id__in=instructors)
 
-    @staticmethod
-    def middle_name_tiebreaker(middle, instructor_instance):
-        instructor_middle = instructor_instance.middle
-        instructor_middle_length = len(instructor_middle)
-        input_middle_length = len(middle)
-        equal = False
-
-        if instructor_middle is None:
-            equal = instructor_middle == middle
-
-        if instructor_middle_length != input_middle_length:
-            equal = False
-
-            if instructor_middle_length == 1:
-                equal = middle.startswith(instructor_middle)
-
-            elif input_middle_length == 1:
-                equal = instructor_middle.startswith(middle)
-
-        else:
-            equal = instructor_middle == middle
-
-        if equal:
-            return middle if input_middle_length >= instructor_middle_length else instructor_middle
-        return False
 
     def update_or_create(self, fname, middle, lname, email=None):
         results = self.filter(fname=fname, lname=lname)
@@ -144,9 +121,9 @@ class InstructorManager(models.Manager):
             return self.create(fname=fname, middle=middle, lname=lname), True
 
         for result in results:
-            tiebreaker = self.middle_name_tiebreaker(middle, result)
-            if tiebreaker:
-                result.middle = tiebreaker
+            middle_match = name_ops.match_middle_name(middle, result.middle)
+            if middle_match:
+                result.middle = middle_match
                 result.save()
                 return result, False
 
