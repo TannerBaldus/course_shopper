@@ -1,6 +1,6 @@
+from course_search.common_ops import db_common_ops
 from django.db import models
 import managers
-import db_common_ops
 
 
 class Instructor(models.Model):
@@ -9,6 +9,9 @@ class Instructor(models.Model):
     lname = models.CharField(max_length=256)
     email = models.EmailField(null=True)
     objects = managers.InstructorManager()
+
+    class meta:
+        unique_together = (('fname', 'middle', 'lname'),)
 
     def __unicode__(self):
         return u"{} {} {}".format(self.fname, self.middle, self.lname)
