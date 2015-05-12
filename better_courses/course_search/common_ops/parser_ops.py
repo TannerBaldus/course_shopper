@@ -1,6 +1,5 @@
 __author__ = 'tanner'
 from bs4 import BeautifulSoup
-from parser_error import ParserError
 import requests
 
 def label_table_row_data(labels, table_row, text=True):

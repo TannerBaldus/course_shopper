@@ -28,6 +28,7 @@ class LoggedInSession(webdriver.PhantomJS):
         :return:
         """
         pass
+
     def find_login_button(self):
         """
 
@@ -66,6 +67,7 @@ class LoggedInSession(webdriver.PhantomJS):
         :param pwd:
         :return:
         """
+        print("logging in")
         page = self.get(self.login_url)
         usr_input = self.find_username_element()
         usr_input.send_keys(username)

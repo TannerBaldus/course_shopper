@@ -61,4 +61,22 @@ def match_middle_name(middle_name_1, middle_name_2):
     return False
 
 
+def match_name(name1, name2):
+    name1_dict = parse_name(name1)
+    name2_dict = parse_name(name2)
+    return name1_dict['fname'] == name2_dict['fname'] and name1_dict['lname'] == name2_dict['lname'] and\
+           match_middle_name(name1_dict['middle'], name2_dict['middle'])
+
+def reorder_comma_delimited_name(name):
+
+    """
+    Re orders a name of the form Last, First Middle to the form First Middle Last
+    :param name:a comma delimited name ordered last, middle first
+    :return: a space delimited name ordered first middle last
+    """
+    print(name)
+    comma_index = name.find(',')
+    return '{} {}'.format(name[comma_index+2:], name[0:comma_index])
+
+
 

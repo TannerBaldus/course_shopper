@@ -1,12 +1,9 @@
 __author__ = 'tanner'
-from ..common_ops import labeled_rows_from_list, convert_and, parse_name, flatten_dict_values
-from  ..parser_error import ParserError
-from course_search.logged_in_sessions.duckweb_session import DuckwebSession
-from bs4 import BeautifulSoup
-
+from ...common_ops.parser_ops import labeled_rows_from_list, convert_and, flatten_dict_values
+from  ...common_ops.name_ops import parse_name, reorder_comma_delimited_name
 
 def parse_eval_row(labeled_row_dict):
-    subject = dict(subject=convert_and(labeled_row_dict['subject']),code='')
+    subject = dict(subject=convert_and(labeled_row_dict['subject']), code='')
     course = dict(subject=subject, number=labeled_row_dict['number'], title=labeled_row_dict['title'])
     season, year = labeled_row_dict['term'].split(' ')[0:2]  #Remove extraneous info e.g. Summer 2010 Final to Summer 2010
     term = dict(season=season, year=int(year))
@@ -24,14 +21,6 @@ def parse_eval_table(eval_rows):
     for row in rows:
         yield parse_eval_row(row)
 
-def reorder_name(instructor_name):
-    """
-
-    :param instructor_name:
-    :return:
-    """
-    name_lst = instructor_name.split(', ')
-    return ' '.join(name_lst[1:]+[name_lst[0]])
 
 def is_complete_eval(eval_dict):
     """
@@ -40,14 +29,24 @@ def is_complete_eval(eval_dict):
     :param eval_dict:
     :return:
     """
-
     return flatten_dict_values(eval_dict).count('') == 1
 
-def parse_eval(instructor_name, eval_rows):
-    instructor_dict = parse_name(reorder_name(instructor_name))
-    for evaluation in parse_eval_table(eval_rows):
-        if is_complete_eval(evaluation):
-            yield dict(evaluation, instructor=instructor_dict)
+def get_evals_table(eval_soup):
+        tbody_tags = eval_soup.find_all('tbody')
+        if len(tbody_tags) != 3:
+            return None
+        tbody = tbody_tags[2]
+        return tbody.find_all('tr', class_='even') + tbody.find_all('tr', class_='odd')
+
+
+def parse_eval(instructor_name, eval_soup):
+    eval_rows = get_evals_table(eval_soup)
+    instructor_name = parse_name(reorder_comma_delimited_name(instructor_name))
+    if eval_rows:
+        for evaluation in parse_eval_table(eval_rows):
+            if is_complete_eval(evaluation):
+                yield dict(evaluation, instructor=instructor_name)
+
 
 
 

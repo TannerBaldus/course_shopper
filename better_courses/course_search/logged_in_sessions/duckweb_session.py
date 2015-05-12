@@ -1,5 +1,6 @@
 __author__ = 'tanner'
 from logged_in_session import LoggedInSession
+from  ..common_ops.name_ops import parse_name, reorder_comma_delimited_name
 from bs4 import  BeautifulSoup
 
 class DuckwebSession(LoggedInSession):
@@ -7,6 +8,7 @@ class DuckwebSession(LoggedInSession):
     def __init__(self, username, pwd):
         duckweb_url = 'https://duckweb.uoregon.edu/pls/prod/twbkwbis.P_WWWLogin'
         super(DuckwebSession, self).__init__(duckweb_url, username, pwd)
+
 
 
     def find_username_element(self):
@@ -36,25 +38,28 @@ class DuckwebSession(LoggedInSession):
         because this allows us to open go directly to the url of the evaluation search, thus saving without
         :return:
         """
+        print("going to course evals")
         main_menu_link = self.find_element_by_css_selector('[title="Course Evaluations"]')
         main_menu_link.click()
         primer_page_link = self.find_element_by_link_text('Course Evaluations')
         primer_page_link.click()
         self.close_opened_window()
         self.new_tab('https://www.applyweb.com/eval/new/coursesearch')
+        iframe = self.find_element_by_tag_name('iFrame')
+        self.switch_to_frame(iframe)
 
-    def instructor_option_values(self):
+    def instructor_option_values(self, start_lname, end_lname):
         """
         Each of the elements in the instructor selection box has a integer value. We put those values in a list
         to be able to easily click those elements later.
         :return:
         """
-        iframe = self.find_element_by_tag_name('iFrame')
-        self.switch_to_frame(iframe)
         instructor_select = self.find_element_by_css_selector('[name="instructorSelect"]')
         option_soup = self.tag_to_soup(instructor_select)
         options = option_soup.find_all('option')
-        return [option['value'] for option in options if option['value'] > 0]
+        get_lname = lambda text: parse_name(reorder_comma_delimited_name(text))['lname']
+        valid_option= lambda option: int(option['value']) > 0 and start_lname <= get_lname(option.text) >= end_lname
+        return [option['value'] for option in options if valid_option(option)]
 
     def get_instructor_option(self, value):
         selector = "[value='{}']".format(value)
@@ -69,31 +74,17 @@ class DuckwebSession(LoggedInSession):
         """
         instructor_option.click()
 
-    def get_evals_table(self, instructor_value):
-        """
 
-
-        :return:
-        """
-        soup = self.page_to_soup()
-        tbody_tags = soup.find_all('tbody')
-        if len(tbody_tags) != 3:
-            return None
-        tbody = tbody_tags[2]
-        return tbody.find_all('tr', class_='even') + tbody.find_all('tr', class_='odd')
-
-    def evals(self):
+    def evals(self, start_lname='', end_lname=None):
         self.go_to_course_evals()
-        for value in self.instructor_option_values():
+        v = self.instructor_option_values(start_lname, end_lname)
+        print(v)
+        for value in v :
             print 'ins value {}'.format(value)
             instructor_option = self.get_instructor_option(value)
             instructor_name = instructor_option.text
             instructor_option.click()
-            table = self.get_evals_table(value)
-            print 'table\n{}'.format(table)
-
-            if table:
-                yield instructor_name, table
+            yield instructor_name, self.page_to_soup()
 
 
 

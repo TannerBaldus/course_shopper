@@ -1,5 +1,5 @@
 __author__ = 'tanner'
-from ..common_ops import labeled_rows_from_table, convert_and
+from ...common_ops.parser_ops import labeled_rows_from_table, convert_and
 
 def parse_subject_table(soup):
     table = soup.find("table")
@@ -12,8 +12,6 @@ def parse_subject_dropdown(soup):
     for option in options:
         code, subject = option.text.strip().split(' - ')
         yield dict(code=code.replace(' ', ''), subject=convert_and(subject).strip())
-
-
 
 
 

@@ -1,9 +1,11 @@
 __author__ = 'tanner'
 
-from ..common_ops import parse_name, label_table_row_data
 from datetime import datetime
 from  string import maketrans
 import string
+
+from ...common_ops.parser_ops import label_table_row_data
+from ...common_ops.name_ops import parse_name
 import re
 
 
@@ -124,7 +126,6 @@ def parse_location_special_cases(location_str):
     return special_cases.get(location_str)
 
 
-
 def parse_location(location_str):
     """
     Takes a string of location and splits it up into Room/Number. Sometimes there's no room so will just put None into
@@ -134,7 +135,6 @@ def parse_location(location_str):
     :param location_str:
     :return:
     """
-
 
     location_lst = location_str.split(' ')
     special_case = parse_location_special_cases(location_str)
@@ -191,9 +191,9 @@ def parse_vitals(table_row):
     :return: A dictionary with the above titles as keys and the
     text from the <TD> as the values
     """
-    
+
     labels = ['class_type', 'crn', 'open_seats', 'total_seats', 'time', 'day', 'location', 'instructor', 'notes']
-    label_mapping = label_table_row_data(labels,table_row)
+    label_mapping = label_table_row_data(labels, table_row)
 
     label_mapping.update(total_seats=int(label_mapping['total_seats']), open_seats=int(label_mapping['open_seats']),
                          meetings=parse_meetings(label_mapping['time'], label_mapping['day'],
@@ -226,17 +226,15 @@ def get_multiple_meetings(soup):
     :param soup: a beautifulsoup object
     :return: a list of meeting dictonaries.
     """
-
     is_meeting_tag = lambda tag: True if tag and tag.td and re.match(r'(\d{4}-\d{4})', tag.td.text) else False
     multiple_meeting_tags = soup.find_all(is_meeting_tag)
-    #We do 0:3 in get_args because we only care about multiple meeting times not the instructor at diff meetings.
+    # We do 0:3 in get_args because we only care about multiple meeting times not the instructor at diff meetings.
     get_args = lambda tr: [td.text for td in tr.find_all('td')[0:3]]
-    meetings =[]
+    meetings = []
     for tr in multiple_meeting_tags:
         meetings += parse_meetings(*get_args(tr))
     print 'meetings', meetings
     return meetings
-
 
 
 def get_term(soup):
@@ -586,8 +584,11 @@ def get_primary_offering(soup):
 
 
 def parse_associated_section(soup):
+    term = get_term(soup)g
     associated_section = get_vitals(soup)
-    associated_section['meetings'] = associated_section['meetings'] + get_multiple_meetings(soup)
+    associated_section['meetings'] = convert_meeting_to_datetime(
+        associated_section['meetings'] + get_multiple_meetings(soup), term.get('year'))
+
     associated_section['instructors'] = get_instructors(soup)
     associated_section['offering'] = get_parent_offering(soup)
 

@@ -1,7 +1,8 @@
 __author__ = 'tanner'
-from ..common_ops import url_to_soup
-from offering_page_parser import get_primary_offering, parse_associated_section
 import logging
+
+from ...common_ops.parser_ops import url_to_soup
+from offering_page_parser import get_primary_offering, parse_associated_section
 
 
 def parse_course_result(table_row):
