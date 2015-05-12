@@ -1,7 +1,7 @@
 __author__ = 'tanner'
 from better_courses.settings import GET_SUBJECTS_FN
 from course_search.models import Subject
-from course_search.management.commands._command_common_ops import get_func_from_string
+from course_search.common_ops.management_ops import get_func_from_string
 from django.core.management.base import BaseCommand
 
 

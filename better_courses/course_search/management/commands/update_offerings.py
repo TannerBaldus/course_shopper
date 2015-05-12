@@ -1,9 +1,10 @@
 __author__ = 'tanner'
 from optparse import make_option
+
 from course_search.models import Offering, AssociatedSection, Subject
 from django.core.management.base import BaseCommand, CommandError
 from better_courses.settings import UPDATE_OFFERINGS_FN
-from _command_common_ops import get_func_from_string
+from course_search.common_ops.management_ops import get_func_from_string
 
 
 class Command(BaseCommand):
@@ -36,6 +37,7 @@ class Command(BaseCommand):
 
 
     def handle(self, *args, **options):
+        print('wtf mate')
         if len(args) < 2:
             raise CommandError('There must be 2 arguments. Season and year.')
 
