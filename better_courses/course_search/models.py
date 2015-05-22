@@ -178,18 +178,18 @@ class Evaluation(models.Model):
         return u"{} {} taught by {} {}".format(self.course.subject.code, self.course.number,
                                                         self.instructor.fname, self.instructor.lname)
     @property
-    def questions():
+    def questions(self):
         return dict(course_quality=self.course_quality,
         teaching_quality=self.teaching_quality,
         organization=self.organization,
-        class_time_use=self.class_time_use
-        communication=self.communication
-        grading_clarity=self.grading_clarity
+        class_time_use=self.class_time_use,
+        communication=self.communication,
+        grading_clarity=self.grading_clarity,
         amount_learned=self.amount_learned)
 
-    def weighted_average(total_responses):
-        weight = self.responses/total_responses
-        return sum([i/len(self.questions.values()) for i in self.questions.values()])
+    def weighted_average(self,total_responses):
+        weight = self.responses/float(total_responses)
+        return weight*sum([i/len(self.questions.values()) for i in self.questions.values()])
 
 
 class WebResource(models.Model):
