@@ -2,9 +2,10 @@ from course_search.common_ops import db_common_ops
 
 __author__ = 'tanner'
 from django.db import models
-from django.db.models import Avg
+from django.db.models import Avg, Sum
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
+
 from course_search.common_ops import name_ops
 import operator
 
@@ -82,6 +83,13 @@ class EvaluationManager(models.Manager):
     def by_score(self, score):
         return self.filter(score__gte=score)
 
+    def average_rating(self):
+        total_responses  =  self.aggregate(Sum("responses"))["responses_sum"]
+        sum([i.weighted_average(total_responses) for i in self])
+
+
+
+
     def get_or_create_evaluation(self, instructor, term, course, responses, course_quality, teaching_quality,
                                  organization, class_time_use, communication, grading_clarity, amount_learned):
 
@@ -128,6 +136,7 @@ class InstructorManager(models.Manager):
                 return result, False
 
         return self.create(fname=fname, middle=middle, lname=lname), True
+
 
 
 class CourseManager(models.Manager):
@@ -185,6 +194,21 @@ a
             course.update_course(min_credits=min_credits, max_credits=max_credits, **kwargs)
 
         return course, created
+
+    def offered_by_term(self, season, year):
+        return self.filter(offering__term__season=season, offering__term__year=year)
+
+    def by_subject_code(self, subj_code):
+        return self.filter(subject__code=subj_code)
+
+    def by_subj_code_and_number(self, subj_code, number):
+        return self.filter(subject__code=subj_code, number=number)
+
+    @property
+    def average_rating(self):
+
+
+
 
 
 class MeetingManager(models.Manager):
