@@ -27,6 +27,7 @@ class OfferingManager(models.Manager):
         """
         offering_pairs = filter(lambda i: i['avg_score'] >= rating, eval_rating_fn())
         if not offering_pairs:
+
             return self.none()
         queries = [Q(course=i['course'], instructor=i['instructor']) for i in offering_pairs]
         query = reduce(operator.or_, queries)
@@ -84,8 +85,8 @@ class EvaluationManager(models.Manager):
         return self.filter(score__gte=score)
 
     def average_rating(self):
-        total_responses  =  self.aggregate(Sum("responses"))["responses_sum"]
-        sum([i.weighted_average(total_responses) for i in self])
+        total_responses  =  self.aggregate(Sum("responses"))["responses__sum"]
+        return sum([i.weighted_average(total_responses) for i in self.all()])
 
 
 
@@ -206,7 +207,7 @@ a
 
     @property
     def average_rating(self):
-
+        pass
 
 
 
