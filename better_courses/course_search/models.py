@@ -147,6 +147,14 @@ class Offering(BaseOfferingInfo):
 
     def __unicode__(self):
         return u"Offering of {} {}".format(self.course.subject.code, self.course.number)
+    @property
+    def rating(self):
+        """
+        Gets the rating of the course If there is more than one instructor the rating is the average of the instructors
+        ratings.
+        """
+        average_ratings = [self.course.evals.filter(instructor=i).average_rating() for i in self.instructors.all()]
+        return sum(average_ratings)/len(average_ratings)
 
 
 class AssociatedSection(BaseOfferingInfo):
