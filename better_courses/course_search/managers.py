@@ -1,4 +1,5 @@
 from course_search.common_ops import db_common_ops
+import  re
 
 __author__ = 'tanner'
 from django.db import models
@@ -10,13 +11,69 @@ from course_search.common_ops import name_ops
 import operator
 
 
+def normalize_query(query_string, findterms=re.compile(r'"([^"]+)"|(\S+)').findall, normspace=re.compile(r'\s{2,}').sub):
+
+    """
+    Splits the query string in invidual keywords, getting rid of unecessary spaces
+        and grouping quoted words together.
+        Example:
+
+        >>> normalize_query('  some random  words "with   quotes  " and   spaces')
+        ['some', 'random', 'words', 'with quotes', 'and', 'spaces']
+
+    """
+    return [normspace(' ', (t[0] or t[1]).strip()) for t in findterms(query_string)]
+
+def keyword_search(query_string, search_fields):
+    query = None
+    terms = normalize_query(query_string)
+    for term in terms:
+        or_query = None # Query to search for a given term in each field
+        for field_name in search_fields:
+            q = Q(**{"%s__icontains" % field_name: term})
+            if or_query is None:
+                or_query = q
+            else:
+                or_query = or_query | q
+        if query is None:
+            query = or_query
+        else:
+            query = query & or_query
+        return query
+
 class OfferingManager(models.Manager):
+
+
 
     def get_queryset(self):
         return super(OfferingManager, self).get_queryset().select_related()
 
     def search_by_instructor(self, fname, lname):
         return self.filter(instructor__fname=fname, instructor__lname=lname)
+
+
+
+
+    def offering_by_query(self, q):
+        from models import Subject
+        query_lst = normalize_query(q)
+        subject_codes = Subject.objects.values_list('code', flat=True)
+        course_regex = re.compile('\w{2,4} \d{3}\w{0,1}')
+        subject_regex = re.compile('\w{3,4}')
+        if query_lst[0].upper() in subject_codes:
+            if len(query_lst) == 1:
+             return self.filter(course__subject__code=q.upper())
+            elif re.match(course_regex):
+                code, number = query_lst
+                return self.filter(course__subject__code=code.upper(), course__number=number)
+
+        search_fields = ['course__desc', 'course__title']
+        return self.filter(keyword_search(q,search_fields))
+
+
+
+
+
 
 
     def search_by_evaluation(self, rating, eval_rating_fn):
@@ -59,7 +116,7 @@ class OfferingManager(models.Manager):
         course = Course.objects.get_or_create_course(**course)[0]
         offering = self.create(crn=crn, term=term, course=course, **kwargs)
         added_m2m_fields = 0
-        added_m2m_fields += db_common_ops.add_kwargs_to_m2m(offering.instructors, Instructor.objects.get_or_create,
+        added_m2m_fields += db_common_ops.add_kwargs_to_m2m(offering.instructors, Instructor.objects.update_or_create,
                                                             instructors)
         added_m2m_fields += db_common_ops.add_kwargs_to_m2m(offering.meetings, Meeting.objects.get_or_create_meeting,
                                                             meetings)
@@ -88,9 +145,6 @@ class EvaluationManager(models.Manager):
         total_responses  =  self.aggregate(Sum("responses"))["responses__sum"]
         return sum([i.weighted_average(total_responses) for i in self.all()])
 
-
-
-
     def get_or_create_evaluation(self, instructor, term, course, responses, course_quality, teaching_quality,
                                  organization, class_time_use, communication, grading_clarity, amount_learned):
 
@@ -114,6 +168,14 @@ class EvaluationManager(models.Manager):
 
 class InstructorManager(models.Manager):
 
+
+    def create(self,fname,middle,lname,email=None):
+        new_model = self.model(fname=fname,middle=middle,lname=lname, email=email)
+        new_model.full_name = name_ops.to_full(fname, middle, lname)
+        new_model.save()
+        return new_model
+
+
     def get_queryset(self):
         return super(InstructorManager, self).get_queryset().select_related()
 
@@ -130,10 +192,11 @@ class InstructorManager(models.Manager):
             return self.create(fname=fname, middle=middle, lname=lname), True
 
         for result in results:
-            middle_match = name_ops.match_middle_name(middle, result.middle)
-            if middle_match:
-                result.middle = middle_match
-                result.save()
+            print result.middle == middle
+            new_middle, isMatch = name_ops.match_middle_name(middle, result.middle)
+            print isMatch
+            if isMatch:
+                result.update_middle(new_middle)
                 return result, False
 
         return self.create(fname=fname, middle=middle, lname=lname), True
@@ -168,7 +231,7 @@ class CourseManager(models.Manager):
         Tries to get a course instance based on the subject_code, number and title only. If
         If a course instance is found and a non blank description is given;
         If no instance is found a new course instance is created.
-a
+
         :param title:
         :param code:
         :param number:
@@ -180,7 +243,7 @@ a
         """
 
         try:
-            course = self.get(title=title, subject__code=subject, number=number)
+            course = self.get(title=title, subject__code=subject['code'], number=number)
             return course, False
 
         except ObjectDoesNotExist:
@@ -239,7 +302,7 @@ class AssociatedSectionManager(models.Manager):
         offering = Offering.objects.get(**offering)
         associated_section = self.create(crn=crn, offering=offering, **kwargs)
         new_m2m_fields = db_common_ops.add_kwargs_to_m2m(associated_section.instructors,
-                                                         Instructor.objects.get_or_create, instructors)
+                                                         Instructor.objects.update_or_create, instructors)
         new_m2m_fields += db_common_ops.add_kwargs_to_m2m(associated_section.meetings,
                                                           Meeting.objects.get_or_create_meeting, meetings)
         if new_m2m_fields > 0:
