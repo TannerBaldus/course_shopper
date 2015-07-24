@@ -37,7 +37,7 @@ def convert_to_term_number(season, year):
     season = season.lower()
     seasons = ['not_valid', 'fall', 'winter', 'spring', 'summer']
     season_index = seasons.index(season)
-    assert 1 < season_index < 4, 'season must be fall, winter, spring or summer'
+    assert season_index in range(1,5) , 'season must be fall, winter, spring or summer'
 
     if season != 'fall':  # # All terms except fall use the previous year in its code
         year -= 1
