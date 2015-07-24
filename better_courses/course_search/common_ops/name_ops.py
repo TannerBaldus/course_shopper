@@ -36,29 +36,43 @@ def parse_name(full_name):
     return dict(fname=fname, middle=middle, lname=lname)
 
 
-def match_middle_name(middle_name_1, middle_name_2):
+
+def match_middle_name(middle1,middle2):
+    """
+    To be used to match Instructor new indstructor data with Instructor names
+    already in the databse.
+
+    """
+
+    if middle1 == middle2:
+        return middle1, True
 
     equal = False
 
-    if middle_name_2 is None:
-        equal = middle_name_2 == middle_name_1
+    if not middle2:
+        equal = middle2 == middle1
 
-    if len(middle_name_2) != middle_name_1:
+    if len(middle2) != len(middle1):
         equal = False
 
-        if len(middle_name_2) == 1:
-            equal = middle_name_1.startswith(middle_name_2)
+        if len(middle2) == 1:
+            equal = middle1.startswith(middle2)
 
-        elif middle_name_1 == 1:
-            equal = middle_name_2.startswith(middle_name_1)
+        elif len(middle1) == 1:
+            equal =middle2.startswith(middle1)
 
     else:
-        equal = middle_name_2 == middle_name_1
+        equal = middle2 == middle1
 
     if equal:
-        return middle_name_1 if middle_name_1 >= len(middle_name_2) else middle_name_2
+        return middle1 if middle1 >= len(middle2) else middle2, True
 
-    return False
+    return '', False
+
+def to_full(fname, middle, lname):
+    if not middle:
+        return "{} {}".format(fname, lname)
+    return "{} {} {}".format(fname, middle, lname)
 
 
 def match_name(name1, name2):
