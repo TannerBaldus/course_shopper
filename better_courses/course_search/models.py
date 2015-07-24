@@ -5,17 +5,20 @@ import managers
 
 class Instructor(models.Model):
     fname = models.CharField(max_length=256)
-    middle = models.CharField(max_length=256, null=True, default='')
+    middle = models.CharField(max_length=256, default='')
     lname = models.CharField(max_length=256)
+    full_name = models.CharField(max_length=768, unique=True)
     email = models.EmailField(null=True)
     objects = managers.InstructorManager()
 
-    class meta:
-        unique_together = (('fname', 'middle', 'lname'),)
+
+    def update_middle(self, in_middle):
+        self.middle = in_middle
+        self.full_name = "{} {} {}".format(self.fname,self.middle, self.lname)
+        self.save()
 
     def __unicode__(self):
-        return u"{} {} {}".format(self.fname, self.middle, self.lname)
-
+        return self.full_name
 
 class Location(models.Model):
     building = models.CharField(max_length=256)
@@ -40,8 +43,10 @@ class DatePeriod(models.Model):
 
     def __unicode__(self):
         message = "{} {}-{}".format(self.day, self.start_time, self.end_time)
-        if self.calendar_day:
-            message += " on {}".format(self.calendar_day)
+        if self.start_date:
+            message += " starting on {}".format(self.start_date)
+        if self.end_date:
+            message += " ending on {}".format(self.end_date)
         return message
 
 
@@ -56,19 +61,15 @@ class Meeting(models.Model):
     def __unicode__(self):
         return u'Course Meeting at {} on {}'.format(self.location, self.date_period)
 
-
 class Subject(models.Model):
     code = models.CharField(max_length=8, unique=True, primary_key=True)
     subject = models.CharField(max_length=256)
     objects = managers.SubjectManager()
 
-
     def update_subject(self, subject):
         print(subject)
         if db_common_ops.update_simple_fields(self, ['subject'], subject=subject):
             self.save()
-
-
 
     def __unicode__(self):
         return u"code: {} subject name:{}".format(self.code, self.subject)
@@ -76,7 +77,8 @@ class Subject(models.Model):
 
 class Course(models.Model):
     title = models.TextField()
-    number = models.CharField(max_length=8)  # char field because some course numbers have letters e.g. 463M,  yeah it's dumb.
+    number = models.CharField(
+        max_length=8)  # char field because some course numbers have letters e.g. 463M,  yeah it's dumb.
     subject = models.ForeignKey(Subject)
     min_credits = models.FloatField(default=0.0)
     max_credits = models.FloatField(default=0.0)
@@ -92,14 +94,12 @@ class Course(models.Model):
     objects = managers.CourseManager()
 
     class meta:
-        unique_together = ('title', 'number', 'subject')
+        unique_together = (('title', 'number', 'subject'),)
 
     def __unicode__(self):
         return "{} {} {}".format(self.subject.code, self.number, self.title)
 
-
     def update_course(self, **kwargs):
-
         print kwargs
 
         simple_fields = ['min_credits', 'max_credits', 'desc', 'fee', 'fee_per_credit', 'prereq_text']
@@ -113,13 +113,11 @@ class Course(models.Model):
 
 
 class Term(models.Model):
-
     season = models.CharField(max_length=7)
     year = models.IntegerField()
 
     class meta:
         unique_together = ('season', 'year')
-
 
 
 class BaseOfferingInfo(models.Model):
@@ -143,10 +141,9 @@ class Offering(BaseOfferingInfo):
     objects = managers.OfferingManager()
     term = models.ForeignKey(Term, related_name='offerings')
 
-
-
     def __unicode__(self):
         return u"Offering of {} {}".format(self.course.subject.code, self.course.number)
+
     @property
     def rating(self):
         """
@@ -154,7 +151,7 @@ class Offering(BaseOfferingInfo):
         ratings.
         """
         average_ratings = [self.course.evals.filter(instructor=i).average_rating() for i in self.instructors.all()]
-        return sum(average_ratings)/len(average_ratings)
+        return sum(average_ratings) / len(average_ratings)
 
 
 class AssociatedSection(BaseOfferingInfo):
@@ -184,20 +181,21 @@ class Evaluation(models.Model):
 
     def __unicode__(self):
         return u"{} {} taught by {} {}".format(self.course.subject.code, self.course.number,
-                                                        self.instructor.fname, self.instructor.lname)
+                                               self.instructor.fname, self.instructor.lname)
+
     @property
     def questions(self):
         return dict(course_quality=self.course_quality,
-        teaching_quality=self.teaching_quality,
-        organization=self.organization,
-        class_time_use=self.class_time_use,
-        communication=self.communication,
-        grading_clarity=self.grading_clarity,
-        amount_learned=self.amount_learned)
+                    teaching_quality=self.teaching_quality,
+                    organization=self.organization,
+                    class_time_use=self.class_time_use,
+                    communication=self.communication,
+                    grading_clarity=self.grading_clarity,
+                    amount_learned=self.amount_learned)
 
-    def weighted_average(self,total_responses):
-        weight = self.responses/float(total_responses)
-        return weight*sum([i/len(self.questions.values()) for i in self.questions.values()])
+    def weighted_average(self, total_responses):
+        weight = self.responses / float(total_responses)
+        return weight * sum([i / len(self.questions.values()) for i in self.questions.values()])
 
 
 class WebResource(models.Model):

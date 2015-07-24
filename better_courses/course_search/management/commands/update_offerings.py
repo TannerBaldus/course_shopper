@@ -37,7 +37,6 @@ class Command(BaseCommand):
 
 
     def handle(self, *args, **options):
-        print('wtf mate')
         if len(args) < 2:
             raise CommandError('There must be 2 arguments. Season and year.')
 
