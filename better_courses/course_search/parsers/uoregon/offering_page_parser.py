@@ -353,10 +353,10 @@ def parse_special_instructors(instructor_tag):
     instructor_tag = instructor_tag.text.strip()
     email = None
     if is_tba(instructor_tag):
-        return dict(fname='tba', middle=None, lname='', email=None)
+        return dict(fname='tba', middle='', lname='', email=None)
 
     else:  # #Sometimes a class is just taught by STAFF
-        return dict(fname='STAFF', middle=None, lname='', email=None)
+        return dict(fname='STAFF', middle='', lname='', email=None)
 
 
 def parse_instructor(instructor_tag):
@@ -584,7 +584,7 @@ def get_primary_offering(soup):
 
 
 def parse_associated_section(soup):
-    term = get_term(soup)g
+    term = get_term(soup)
     associated_section = get_vitals(soup)
     associated_section['meetings'] = convert_meeting_to_datetime(
         associated_section['meetings'] + get_multiple_meetings(soup), term.get('year'))
