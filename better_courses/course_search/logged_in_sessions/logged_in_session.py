@@ -2,7 +2,6 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 __author__ = 'tanner'
-from pyvirtualdisplay import Display
 
 class LoggedInSession(webdriver.PhantomJS):
 
