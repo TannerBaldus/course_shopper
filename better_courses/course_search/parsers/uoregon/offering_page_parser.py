@@ -13,7 +13,7 @@ def remove_nbsp(text):
     """
     removes the non breaking space characters from a string
     :param text:
-    :return:
+    :return: 
     """
     pattern = re.compile(u'\xa0')
     return pattern.sub('', text)
@@ -112,9 +112,9 @@ def parse_start_end(calendar_day_str):
 
 def parse_location_special_cases(location_str):
     """
-
-    :param location_str:
-    :return:
+    Some locations aren't of the usual form  BLDNG NUM so parse those here
+    :param location_str: the string containg the location
+    :return: a dict of the form {building:str, room:str} or None if not special case
     """
     location_str = location_str.strip()
     if is_tba(location_str):
@@ -133,7 +133,7 @@ def parse_location(location_str):
     numbers e.g. MCK 240C
 
     :param location_str:
-    :return:
+    :return: a dict of the form {building:str, room:str}
     """
 
     location_lst = location_str.split(' ')
@@ -446,10 +446,13 @@ def parse_credits(credit_text):
 
 def parse_course_title(title_lst, number, gen_ed_start):
     """
-
-    :param title_lst:
-    :param gen_ed_start:
-    :return:
+    The course title, course number and the gen ed codes are in the same string on the page.
+    So we use the course number which we know from somewhere else and the start of the gen ed codes
+    to figure out where the title ends.
+    
+    :param title_lst: the title string split by whitespace
+    :param gen_ed_start: the starting pos of the gen ed codes
+    :return: the title of the course
     """
     number_end = title_lst.find(number) + len(number) + 1
     if gen_ed_start != -1:
@@ -476,9 +479,10 @@ def parse_title_text(title_text):
 
 def parse_course_fee(fee_text):
     """
-
+    Parses the course fee amount and if it the fee is a per credit basis.
+    
     :param fee_text: text that contains the course fee
-    :return:
+    :return: a dict of the form {fee:float, fee_per_credit:bool}
     """
     print(fee_text)
     fee_per_credit = False or 'per credit' in fee_text
@@ -521,9 +525,11 @@ def get_web_resources(soup):
 
 def get_parent_offering(soup):
     """
+    For when parsing an associated section e.g. a lab for a physics class
+    gets the crn of the 
 
-    :param soup:
-    :return:
+    :param soup: a beautiful soup object of the 
+    :return: the crn of the parent section
     """
     is_offering_tag = lambda t: t.text == 'Associated Sections' if t else False
     offering_tag = soup.find(is_offering_tag).parent
@@ -533,9 +539,7 @@ def get_parent_offering(soup):
 
 def convert_meeting_to_datetime(meeting_dicts_list, year):
     """
-
-    :param meeting_dicts_list:
-    :return:
+    Converts a list of meetings in dictonary form to a list o meetings in date time form.
     """
     add_year = lambda date_str: '{}/{}'.format(date_str, year)
     make_date_obj = lambda date_str: datetime.strptime(add_year(date_str), '%m/%d/%Y').date()
@@ -556,7 +560,7 @@ def convert_meeting_to_datetime(meeting_dicts_list, year):
 def get_course(soup):
     """
 
-
+    
     :param soup:
     :return:
     """
@@ -570,6 +574,7 @@ def get_course(soup):
 
 def get_primary_offering(soup):
     """
+    Parses a 
     :param soup:
     :return:
     """
