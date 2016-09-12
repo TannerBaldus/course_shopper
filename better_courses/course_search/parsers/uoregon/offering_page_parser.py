@@ -188,8 +188,7 @@ def parse_vitals(table_row):
         <TD> Location
         <TD> Instructor
         <TD> Note
-    :return: A dictionary with the above titles as keys and the
-    text from the <TD> as the values
+    :return: A dict of the form {total_seats:int, open_seats:int, meetings:list of meeting dicts, crn:str}
     """
 
     labels = ['class_type', 'crn', 'open_seats', 'total_seats', 'time', 'day', 'location', 'instructor', 'notes']
@@ -289,21 +288,6 @@ def get_prereqs(soup):
     if tag:
         prereq_text = tag.text.split('Prereq:')[1].lstrip()
     return prereq_text
-
-
-def parse_associated_sections(soup):
-    """
-    Gets the associated sections of a class.
-    Found by searching for element:
-    <TR>
-        <TD COLSPAN="8" CLASS="dddead" width="536"><br>Associated Sections</TD>
-    Then parsing the sibling rows which are the vitals for the associated section.
-
-    :param soup: a beautifulsoup object of the class page
-    :return: a list of dictionaries made from get_vitals()
-    """
-    associated_section_header = soup.find('td', text='Associated Sections').parent
-    return [parse_vitals(sib) for sib in associated_section_header.find_next_siblings('tr')]
 
 
 def parse_note(note_tag):
@@ -429,8 +413,7 @@ def parse_credits(credit_text):
     """
     Returns the number of credits the course is worth.
     :param credit_text: the tag containing the credits
-    :return:
-    possi
+    :return: {min_credits:float, max_credits:float}
     """
 
     credit_text = format_credit_text(credit_text)
@@ -559,14 +542,15 @@ def convert_meeting_to_datetime(meeting_dicts_list, year):
 
 def get_course(soup):
     """
-    Gets the course info from an offering page beautiful soup object. The distinction between course and 
-    offering is best explained by example. 
-    The Course is CIS 210. The Offering is CIS 210 taught in the Fall Semester by Michal Young. CIS 210
-    exists as an entity outside of the particular class taught each term.  
-    This includes the course name, credit range, notes, description, pre-reqs, fees and web resources.
+    Parses the course material from an offering beautiful soup object.
+    The distinction between course and offering is best explained by example.
+    The course is CIS 210, the offering is CIS 210 being taught by Michal Young of fall term 2010.
+    The course exists as an entity outside of the classes that teach it each term.
     
-    :param soup: a beautiful soup object of an offering page
-    :return: a dict of the form {}
+    
+    :param soup: a beautiful soup object of an offering
+    :return: {notes:list of note dicts, min_credits:float, max_credits:float, 
+    desc:str, fee:float, fee_per_credit:bool, prereq_text:str, web_resources:}
     """
     title_text, credit_text = get_title_credit_text(soup)
     course = parse_title_text(title_text)
@@ -579,9 +563,9 @@ def get_course(soup):
 def get_primary_offering(soup):
     """
     Parses a beautiful soup obj of a standalone offering.
-    :param soup: a beautiful soup obj of an
+    :param soup: a beautiful soup obj of an offering page
     :return: a dict of the form {course:course dict, term:term dict, instructors:list of instructor dicts,
-    meeting: list of meeting dicts}
+    meeting: list of meeting dicts, total_seats:int, open_seats:int, crn:str}
     """
 
     primary_dict = get_vitals(soup)
@@ -594,6 +578,12 @@ def get_primary_offering(soup):
 
 
 def parse_associated_section(soup):
+    """
+    Parses a beautiful soup obj of an associated section page.
+    :param soup: a beautiful soup obj of an associated section page
+    :return: {course:course dict, term:term dict, instructors:list of instructor dicts,
+    meeting: list of meeting dicts, total_seats:int, open_seats:int, offering:crn str, crn:str}
+    """
     term = get_term(soup)
     associated_section = get_vitals(soup)
     associated_section['meetings'] = convert_meeting_to_datetime(
