@@ -593,29 +593,4 @@ def parse_associated_section(soup):
     associated_section['offering'] = get_parent_offering(soup)
 
     return associated_section
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
