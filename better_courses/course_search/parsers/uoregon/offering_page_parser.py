@@ -559,10 +559,14 @@ def convert_meeting_to_datetime(meeting_dicts_list, year):
 
 def get_course(soup):
     """
-
+    Gets the course info from an offering page beautiful soup object. The distinction between course and 
+    offering is best explained by example. 
+    The Course is CIS 210. The Offering is CIS 210 taught in the Fall Semester by Michal Young. CIS 210
+    exists as an entity outside of the particular class taught each term.  
+    This includes the course name, credit range, notes, description, pre-reqs, fees and web resources.
     
-    :param soup:
-    :return:
+    :param soup: a beautiful soup object of an offering page
+    :return: a dict of the form {}
     """
     title_text, credit_text = get_title_credit_text(soup)
     course = parse_title_text(title_text)
@@ -574,9 +578,10 @@ def get_course(soup):
 
 def get_primary_offering(soup):
     """
-    Parses a 
-    :param soup:
-    :return:
+    Parses a beautiful soup obj of a standalone offering.
+    :param soup: a beautiful soup obj of an
+    :return: a dict of the form {course:course dict, term:term dict, instructors:list of instructor dicts,
+    meeting: list of meeting dicts}
     """
 
     primary_dict = get_vitals(soup)
